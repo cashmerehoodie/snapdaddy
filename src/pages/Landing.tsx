@@ -86,6 +86,40 @@ const Landing = () => {
             tracks expenses, and prepares you for tax season.
           </p>
 
+          {user && (
+            <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-12">
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+                  <Receipt className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Upload Receipts</h3>
+                <p className="text-sm text-muted-foreground">
+                  Quickly capture and process receipts with our AI-powered scanner
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Track Expenses</h3>
+                <p className="text-sm text-muted-foreground">
+                  View monthly and yearly breakdowns of all your spending
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Secure Sync</h3>
+                <p className="text-sm text-muted-foreground">
+                  Auto-sync to Google Drive and Sheets for backup and analysis
+                </p>
+              </div>
+            </div>
+          )}
+
           {!user && (
             <>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
