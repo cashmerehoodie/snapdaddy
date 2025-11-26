@@ -130,20 +130,22 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
       // Check if user has configured Google Sheets
       const { data: profile } = await supabase
         .from("profiles")
-        .select("google_sheets_id")
+        .select("google_sheets_id, google_drive_folder")
         .eq("user_id", userId)
         .maybeSingle();
 
       if (accessToken && functionData?.data) {
         // Upload to Google Drive
         const driveFileName = `receipt_${functionData.data.date}_${functionData.data.merchant_name || 'unknown'}.${fileExt}`;
+        const folderName = profile?.google_drive_folder || 'SnapDaddy Receipts';
         
         toast.loading("Uploading to Google Drive...", { id: "drive-upload" });
         const { data: driveData, error: driveError } = await supabase.functions.invoke('google-drive-upload', {
           body: { 
             imageUrl: publicUrl, 
             fileName: driveFileName,
-            accessToken 
+            accessToken,
+            folderName
           }
         });
 
