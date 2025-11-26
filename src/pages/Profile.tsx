@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Upload, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, Loader2, Sun, Moon } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import Cropper from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useTheme } from "next-themes";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,7 @@ import {
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -301,6 +303,46 @@ const Profile = () => {
         </Button>
 
         <div className="space-y-6">
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <CardDescription>Customize how SnapDaddy looks on your device</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Label>Theme</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <Button
+                    variant={theme === "light" ? "default" : "outline"}
+                    onClick={() => setTheme("light")}
+                    className="w-full gap-2"
+                  >
+                    <Sun className="w-4 h-4" />
+                    Light
+                  </Button>
+                  <Button
+                    variant={theme === "dark" ? "default" : "outline"}
+                    onClick={() => setTheme("dark")}
+                    className="w-full gap-2"
+                  >
+                    <Moon className="w-4 h-4" />
+                    Dark
+                  </Button>
+                  <Button
+                    variant={theme === "system" ? "default" : "outline"}
+                    onClick={() => setTheme("system")}
+                    className="w-full"
+                  >
+                    System
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Choose between light, dark, or sync with your system settings
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle>Currency</CardTitle>
