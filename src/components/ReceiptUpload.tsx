@@ -14,6 +14,11 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
   const [processing, setProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [processedReceipt, setProcessedReceipt] = useState<{
+    imageUrl: string;
+    date: string;
+    merchant: string;
+  } | null>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,7 +50,7 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
       const fileExt = selectedFile.name.split(".").pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
       
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("receipts")
         .upload(fileName, selectedFile);
 
@@ -67,6 +72,54 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
       );
 
       if (functionError) throw functionError;
+
+      // Get access token for Google APIs
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.provider_token;
+
+      if (accessToken && functionData?.data) {
+        // Upload to Google Drive
+        const driveFileName = `receipt_${functionData.data.date}_${functionData.data.merchant_name || 'unknown'}.${fileExt}`;
+        
+        const { data: driveData, error: driveError } = await supabase.functions.invoke('google-drive-upload', {
+          body: { 
+            imageUrl: publicUrl, 
+            fileName: driveFileName,
+            accessToken 
+          }
+        });
+
+        let driveLink = '';
+        if (!driveError && driveData?.webViewLink) {
+          driveLink = driveData.webViewLink;
+          toast.success("Saved to Google Drive!");
+        }
+
+        // Sync to Google Sheets
+        const { error: sheetsError } = await supabase.functions.invoke('google-sheets-sync', {
+          body: {
+            accessToken,
+            receiptData: {
+              ...functionData.data,
+              driveLink
+            }
+          }
+        });
+
+        if (!sheetsError) {
+          toast.success("Synced to Google Sheets!");
+        }
+      }
+
+      // Format date for display
+      const date = new Date(functionData.data.date);
+      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+
+      setProcessedReceipt({
+        imageUrl: publicUrl,
+        date: formattedDate,
+        merchant: functionData.data.merchant_name || 'Unknown'
+      });
 
       toast.success("Receipt processed successfully!");
       setSelectedFile(null);
@@ -159,6 +212,27 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
               </>
             )}
           </Button>
+        )}
+
+        {processedReceipt && (
+          <div className="p-4 border border-border rounded-lg bg-secondary/20">
+            <h3 className="text-sm font-semibold mb-3 text-foreground">Last Processed Receipt</h3>
+            <div className="flex items-start gap-4">
+              <img 
+                src={processedReceipt.imageUrl} 
+                alt="Receipt thumbnail" 
+                className="w-20 h-20 object-cover rounded-md border border-border"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  {processedReceipt.merchant}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Date: {processedReceipt.date}
+                </p>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
