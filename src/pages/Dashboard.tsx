@@ -9,6 +9,13 @@ import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 
 const Dashboard = () => {
@@ -16,6 +23,9 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState<string>(() => {
+    return localStorage.getItem("currency") || "USD";
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -52,6 +62,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
+    localStorage.setItem("currency", value);
+    toast.success(`Currency changed to ${value}`);
+  };
+
+  const getCurrencySymbol = (curr: string) => {
+    const symbols: Record<string, string> = {
+      USD: "$",
+      GBP: "£",
+      EUR: "€",
+      JPY: "¥",
+      AUD: "A$",
+      CAD: "C$",
+    };
+    return symbols[curr] || "$";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -82,6 +110,20 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            <Select value={currency} onValueChange={handleCurrencyChange}>
+              <SelectTrigger className="w-[100px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">$ USD</SelectItem>
+                <SelectItem value="GBP">£ GBP</SelectItem>
+                <SelectItem value="EUR">€ EUR</SelectItem>
+                <SelectItem value="JPY">¥ JPY</SelectItem>
+                <SelectItem value="AUD">A$ AUD</SelectItem>
+                <SelectItem value="CAD">C$ CAD</SelectItem>
+              </SelectContent>
+            </Select>
+            
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/60">
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
                 {user.email?.[0]?.toUpperCase() || "U"}
@@ -118,15 +160,15 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
-            <ReceiptUpload userId={user.id} />
+            <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="monthly">
-            <MonthlyView userId={user.id} />
+            <MonthlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="yearly">
-            <YearlyView userId={user.id} />
+            <YearlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
         </Tabs>
       </main>

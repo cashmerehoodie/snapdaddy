@@ -5,9 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface ReceiptUploadProps {
   userId: string;
+  currencySymbol: string;
 }
 
 interface Receipt {
@@ -18,7 +24,7 @@ interface Receipt {
   amount: number;
 }
 
-const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
+const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -238,11 +244,24 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
           <div className="p-4 border border-border rounded-lg bg-secondary/20">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Last Processed Receipt</h3>
             <div className="flex items-start gap-4">
-              <img 
-                src={lastReceipt.image_url} 
-                alt="Receipt thumbnail" 
-                className="w-20 h-20 object-cover rounded-md border border-border"
-              />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <img 
+                    src={lastReceipt.image_url} 
+                    alt="Receipt thumbnail" 
+                    className="w-20 h-20 object-cover rounded-md border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[90vh] p-0">
+                  <div className="relative w-full h-full overflow-auto p-6">
+                    <img 
+                      src={lastReceipt.image_url} 
+                      alt="Receipt full size" 
+                      className="w-full h-auto rounded-lg"
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
                   {lastReceipt.merchant_name || "Unknown Merchant"}
@@ -251,7 +270,7 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
                   Date: {format(new Date(lastReceipt.receipt_date), "dd/MM/yy")}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Amount: ${Number(lastReceipt.amount).toFixed(2)}
+                  Amount: {currencySymbol}{Number(lastReceipt.amount).toFixed(2)}
                 </p>
               </div>
             </div>

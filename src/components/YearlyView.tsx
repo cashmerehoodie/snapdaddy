@@ -11,9 +11,10 @@ interface MonthlyTotal {
 
 interface YearlyViewProps {
   userId: string;
+  currencySymbol: string;
 }
 
-const YearlyView = ({ userId }: YearlyViewProps) => {
+const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
   const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([]);
   const [yearTotal, setYearTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -90,7 +91,7 @@ const YearlyView = ({ userId }: YearlyViewProps) => {
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-1">Total Yearly Expenses</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                ${yearTotal.toFixed(2)}
+                {currencySymbol}{yearTotal.toFixed(2)}
               </p>
             </div>
           </div>
@@ -124,7 +125,7 @@ const YearlyView = ({ userId }: YearlyViewProps) => {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-primary">
-                    ${item.total.toFixed(2)}
+                    {currencySymbol}{item.total.toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {((item.total / yearTotal) * 100).toFixed(1)}% of year
