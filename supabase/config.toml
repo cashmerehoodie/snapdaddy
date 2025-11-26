@@ -2,3 +2,9 @@ project_id = "nxcvnyssknbafcjyowrh"
 
 [functions.process-receipt]
 verify_jwt = false
+
+[functions.google-drive-upload]
+verify_jwt = false
+
+[functions.google-sheets-sync]
+verify_jwt = false
