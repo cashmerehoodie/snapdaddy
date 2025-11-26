@@ -63,15 +63,16 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
-        scopes: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets',
-        redirectTo: `${window.location.origin}/dashboard`,
+        scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+        // Let the backend use its configured Site URL + callback
+        redirectTo: window.location.origin,
       },
     });
 
     if (error) {
-      toast.error(error.message);
+      toast.error(error.message || "Google sign-in failed");
     }
   };
 
