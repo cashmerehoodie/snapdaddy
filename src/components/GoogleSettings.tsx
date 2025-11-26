@@ -172,7 +172,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
             <Label htmlFor="drive-folder">Google Drive Folder Name</Label>
             <Input
               id="drive-folder"
-              placeholder="Enter folder name (e.g., My Receipts)"
+              placeholder="SnapDaddy Receipts"
               value={driveFolder}
               onChange={(e) => setDriveFolder(e.target.value)}
             />
@@ -184,9 +184,12 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
 
           {/* Info box */}
           <div className="p-4 bg-secondary/50 rounded-lg">
-            <p className="text-sm font-medium mb-2">💡 Tip</p>
-            <p className="text-xs text-muted-foreground">
-              You can use folder names like "Work Receipts" or "Personal Expenses" to organize your receipts.
+            <p className="text-sm font-medium mb-2">📁 Current folder</p>
+            <p className="text-sm font-mono text-primary">
+              {driveFolder || 'SnapDaddy Receipts'}
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              You can organize receipts by using different folder names like "Work Receipts" or "Personal Expenses"
             </p>
           </div>
         </div>
