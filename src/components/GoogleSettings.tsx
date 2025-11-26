@@ -22,29 +22,33 @@ interface GoogleSettingsProps {
 const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   const [open, setOpen] = useState(false);
   const [sheetsId, setSheetsId] = useState("");
+  const [driveFolder, setDriveFolder] = useState("");
   const [saving, setSaving] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     checkGoogleConnection();
-    fetchSheetsId();
+    fetchSettings();
   }, [userId]);
 
-  const checkGoogleConnection = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsConnected(!!session?.provider_token);
-  };
-
-  const fetchSheetsId = async () => {
+  const fetchSettings = async () => {
     const { data } = await supabase
       .from("profiles")
-      .select("google_sheets_id")
+      .select("google_sheets_id, google_drive_folder")
       .eq("user_id", userId)
       .maybeSingle();
 
     if (data?.google_sheets_id) {
       setSheetsId(data.google_sheets_id);
     }
+    if (data?.google_drive_folder) {
+      setDriveFolder(data.google_drive_folder);
+    }
+  };
+
+  const checkGoogleConnection = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsConnected(!!session?.provider_token);
   };
 
   const extractSheetId = (input: string): string => {
@@ -66,7 +70,8 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
         .from("profiles")
         .upsert({ 
           user_id: userId,
-          google_sheets_id: cleanSheetId 
+          google_sheets_id: cleanSheetId,
+          google_drive_folder: driveFolder || 'SnapDaddy Receipts'
         }, {
           onConflict: 'user_id'
         });
@@ -74,7 +79,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
       if (error) throw error;
 
       setSheetsId(cleanSheetId); // Update state with clean ID
-      toast.success("Google Sheets ID saved!");
+      toast.success("Settings saved!");
       setOpen(false);
     } catch (error: any) {
       toast.error(error.message || "Error saving settings");
@@ -163,17 +168,31 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
           </div>
 
           {/* Drive Folder Info */}
-          <div className="p-4 bg-secondary/50 rounded-lg">
-            <p className="text-sm font-medium mb-2">📁 Drive Folder</p>
+          <div className="space-y-2">
+            <Label htmlFor="drive-folder">Google Drive Folder Name</Label>
+            <Input
+              id="drive-folder"
+              placeholder="Enter folder name (e.g., My Receipts)"
+              value={driveFolder}
+              onChange={(e) => setDriveFolder(e.target.value)}
+            />
             <p className="text-xs text-muted-foreground">
-              Receipts are automatically uploaded to a folder called <strong>"SnapDaddy Receipts"</strong> in your Google Drive.
-              This folder will be created automatically on your first upload.
+              All receipts will be saved to this folder in your Google Drive.
+              If the folder doesn't exist, it will be created automatically.
+            </p>
+          </div>
+
+          {/* Info box */}
+          <div className="p-4 bg-secondary/50 rounded-lg">
+            <p className="text-sm font-medium mb-2">💡 Tip</p>
+            <p className="text-xs text-muted-foreground">
+              You can use folder names like "Work Receipts" or "Personal Expenses" to organize your receipts.
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button onClick={handleSave} disabled={saving || !sheetsId}>
+          <Button onClick={handleSave} disabled={saving || !sheetsId || !driveFolder}>
             {saving ? "Saving..." : "Save Settings"}
           </Button>
         </DialogFooter>

@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, fileName, accessToken } = await req.json();
+    const { imageUrl, fileName, accessToken, folderName = 'SnapDaddy Receipts' } = await req.json();
 
     console.log("Fetching image from:", imageUrl);
 
@@ -23,10 +23,10 @@ serve(async (req) => {
 
     const imageBlob = await imageResponse.blob();
     
-    // Get or create the "SnapDaddy Receipts" folder
-    console.log("Finding or creating folder...");
+    // Get or create the specified folder
+    console.log("Finding or creating folder:", folderName);
     const folderSearchResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='SnapDaddy Receipts' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -42,7 +42,7 @@ serve(async (req) => {
       console.log("Found existing folder:", folderId);
     } else {
       // Create the folder
-      console.log("Creating new folder...");
+      console.log("Creating new folder:", folderName);
       const createFolderResponse = await fetch(
         'https://www.googleapis.com/drive/v3/files',
         {
@@ -52,7 +52,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: 'SnapDaddy Receipts',
+            name: folderName,
             mimeType: 'application/vnd.google-apps.folder',
           }),
         }
