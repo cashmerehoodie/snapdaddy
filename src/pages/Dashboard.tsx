@@ -63,7 +63,7 @@ const Dashboard = () => {
       .from("profiles")
       .select("avatar_url")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
     
     if (data?.avatar_url) {
       setAvatarUrl(data.avatar_url);
