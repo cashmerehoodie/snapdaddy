@@ -2,8 +2,21 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, DollarSign, Trash2 } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Receipt {
   id: string;
@@ -11,6 +24,7 @@ interface Receipt {
   merchant_name: string;
   receipt_date: string;
   category: string;
+  image_url: string;
 }
 
 interface MonthlyViewProps {
@@ -54,6 +68,35 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       console.error("Error fetching receipts:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (receiptId: string, imageUrl: string) => {
+    try {
+      toast.loading("Deleting receipt...", { id: "delete-receipt" });
+
+      // Delete from storage
+      const fileName = imageUrl.split("/").pop();
+      if (fileName) {
+        const filePath = `${userId}/${fileName}`;
+        await supabase.storage.from("receipts").remove([filePath]);
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from("receipts")
+        .delete()
+        .eq("id", receiptId);
+
+      if (error) throw error;
+
+      toast.success("Receipt deleted successfully", { id: "delete-receipt" });
+      
+      // Refresh the list
+      await fetchMonthlyReceipts();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete receipt", { id: "delete-receipt" });
+      console.error("Delete error:", error);
     }
   };
 
@@ -122,10 +165,41 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                     {format(new Date(receipt.receipt_date), "MMM dd, yyyy")}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-primary">
-                    {currencySymbol}{Number(receipt.amount).toFixed(2)}
-                  </p>
+                <div className="flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary">
+                      {currencySymbol}{Number(receipt.amount).toFixed(2)}
+                    </p>
+                  </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Receipt</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this receipt from {receipt.merchant_name || "Unknown Merchant"}? 
+                          This action cannot be undone and will remove the receipt from your records.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDelete(receipt.id, receipt.image_url)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </CardContent>
             </Card>
