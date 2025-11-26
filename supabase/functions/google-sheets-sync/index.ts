@@ -17,26 +17,43 @@ serve(async (req) => {
       throw new Error('Google Sheets ID not provided');
     }
 
-
     console.log("Syncing to Google Sheets:", sheetsId);
 
     const { merchant_name, amount, receipt_date, category, driveLink } = receiptData;
     
-    // Get current year for sheet name
-    const year = new Date(receipt_date).getFullYear();
-    const sheetName = `Receipts ${year}`;
+    // Parse date and get month/year
+    const date = new Date(receipt_date);
+    const monthName = date.toLocaleString('en-US', { month: 'long' });
+    const year = date.getFullYear();
+    const sheetName = `${monthName} ${year}`; // e.g., "November 2025"
 
     console.log("Target sheet:", sheetName);
 
-    // Check if sheet exists
-    const sheetsResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+    // Check if sheet exists, and verify API access
+    let sheetsResponse;
+    try {
+      sheetsResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+      
+      if (!sheetsResponse.ok) {
+        const errorData = await sheetsResponse.json();
+        console.error("Sheets API error:", JSON.stringify(errorData, null, 2));
+        
+        if (errorData.error?.code === 403 && errorData.error?.message?.includes('Sheets API')) {
+          throw new Error('Google Sheets API is not enabled. Please enable it at: https://console.developers.google.com/apis/api/sheets.googleapis.com/overview');
+        }
+        throw new Error(`Sheets API error: ${errorData.error?.message || sheetsResponse.statusText}`);
       }
-    );
+    } catch (error) {
+      console.error("Failed to access spreadsheet:", error);
+      throw error;
+    }
 
     const sheetsData = await sheetsResponse.json();
     const sheetExists = sheetsData.sheets?.some(
@@ -68,10 +85,10 @@ serve(async (req) => {
         }
       );
 
-      // Add headers
+      // Add headers with better formatting
       console.log("Adding headers to new sheet");
       await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A1:E1:append?valueInputOption=RAW`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A1:F1:append?valueInputOption=RAW`,
         {
           method: 'POST',
           headers: {
@@ -79,20 +96,49 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            values: [['Date', 'Merchant', 'Amount', 'Category', 'Drive Link']],
+            values: [['Date', 'Merchant', 'Amount', 'Category', 'Drive Link', 'Month']],
+          }),
+        }
+      );
+      
+      // Format header row (bold, background color)
+      await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}:batchUpdate`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            requests: [{
+              repeatCell: {
+                range: {
+                  sheetId: sheetsData.sheets.find((s: any) => s.properties.title === sheetName)?.properties.sheetId,
+                  startRowIndex: 0,
+                  endRowIndex: 1
+                },
+                cell: {
+                  userEnteredFormat: {
+                    backgroundColor: { red: 0.2, green: 0.2, blue: 0.8 },
+                    textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } }
+                  }
+                },
+                fields: 'userEnteredFormat(backgroundColor,textFormat)'
+              }
+            }]
           }),
         }
       );
     }
 
-    // Format date as DD/MM/YY
-    const date = new Date(receipt_date);
-    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
+    // Format date as DD/MM/YYYY
+    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 
     // Append the receipt data
     console.log("Appending receipt data");
     const appendResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A:E:append?valueInputOption=RAW`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A:F:append?valueInputOption=USER_ENTERED`,
       {
         method: 'POST',
         headers: {
@@ -105,7 +151,8 @@ serve(async (req) => {
             merchant_name || 'Unknown',
             amount,
             category || 'Uncategorized',
-            driveLink || ''
+            driveLink ? `=HYPERLINK("${driveLink}", "View Receipt")` : '',
+            monthName
           ]],
         }),
       }
