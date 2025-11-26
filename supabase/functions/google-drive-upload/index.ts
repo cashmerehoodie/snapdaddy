@@ -23,10 +23,12 @@ serve(async (req) => {
 
     const imageBlob = await imageResponse.blob();
     
-    // Get or create the specified folder
-    console.log("Finding or creating folder:", folderName);
+    // Get or create the specified folder in My Drive root
+    console.log("Finding or creating folder in My Drive root:", folderName);
+    
+    // Search for folder in My Drive root specifically (not in shared drives or subfolders)
     const folderSearchResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -36,15 +38,17 @@ serve(async (req) => {
 
     const folderSearchData = await folderSearchResponse.json();
     let folderId: string;
+    let folderLink: string;
 
     if (folderSearchData.files && folderSearchData.files.length > 0) {
       folderId = folderSearchData.files[0].id;
-      console.log("Found existing folder:", folderId);
+      folderLink = folderSearchData.files[0].webViewLink || `https://drive.google.com/drive/folders/${folderId}`;
+      console.log("Found existing folder:", folderId, "at", folderLink);
     } else {
-      // Create the folder
-      console.log("Creating new folder:", folderName);
+      // Create the folder in My Drive root
+      console.log("Creating new folder in My Drive root:", folderName);
       const createFolderResponse = await fetch(
-        'https://www.googleapis.com/drive/v3/files',
+        'https://www.googleapis.com/drive/v3/files?fields=id,name,webViewLink',
         {
           method: 'POST',
           headers: {
@@ -54,13 +58,15 @@ serve(async (req) => {
           body: JSON.stringify({
             name: folderName,
             mimeType: 'application/vnd.google-apps.folder',
+            parents: ['root'], // Explicitly place in My Drive root
           }),
         }
       );
 
       const folderData = await createFolderResponse.json();
       folderId = folderData.id;
-      console.log("Created folder:", folderId);
+      folderLink = folderData.webViewLink || `https://drive.google.com/drive/folders/${folderId}`;
+      console.log("Created folder:", folderId, "at", folderLink);
     }
 
     // Upload file to Google Drive
@@ -117,13 +123,15 @@ serve(async (req) => {
     }
 
     const uploadData = await uploadResponse.json();
-    console.log("Upload successful:", uploadData.id);
+    console.log("Upload successful:", uploadData.id, "in folder:", folderId);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         fileId: uploadData.id,
-        webViewLink: `https://drive.google.com/file/d/${uploadData.id}/view`
+        webViewLink: `https://drive.google.com/file/d/${uploadData.id}/view`,
+        folderLink: folderLink,
+        folderName: folderName
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

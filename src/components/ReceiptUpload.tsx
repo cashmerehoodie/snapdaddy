@@ -153,7 +153,8 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         let driveLink = '';
         if (!driveError && driveData?.webViewLink) {
           driveLink = driveData.webViewLink;
-          toast.success(`✅ Saved to Google Drive (${folderName})`, { id: "drive-upload" });
+          console.log("Drive upload successful to folder:", driveData.folderName, driveData.folderLink);
+          toast.success(`✅ Saved to ${driveData.folderName || folderName}`, { id: "drive-upload" });
         } else {
           toast.error("Failed to upload to Drive", { id: "drive-upload" });
           console.error("Drive upload error:", driveError);
