@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
+import GoogleSettings from "@/components/GoogleSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
@@ -140,6 +141,8 @@ const Dashboard = () => {
                 <SelectItem value="CAD">C$ CAD</SelectItem>
               </SelectContent>
             </Select>
+
+            <GoogleSettings userId={user.id} />
             
             <Button
               variant="ghost"

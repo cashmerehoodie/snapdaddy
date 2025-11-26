@@ -11,12 +11,12 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken, receiptData } = await req.json();
-    const sheetsId = Deno.env.get('GOOGLE_SHEETS_ID');
-
+    const { accessToken, receiptData, sheetsId } = await req.json();
+    
     if (!sheetsId) {
-      throw new Error('GOOGLE_SHEETS_ID not configured');
+      throw new Error('Google Sheets ID not provided');
     }
+
 
     console.log("Syncing to Google Sheets:", sheetsId);
 
