@@ -29,7 +29,27 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Processing receipt with AI...");
+    console.log("Fetching image from:", imageUrl);
+    
+    // Fetch the image and convert to base64
+    const imageResponse = await fetch(imageUrl);
+    
+    if (!imageResponse.ok) {
+      console.error("Failed to fetch image:", imageResponse.status, imageResponse.statusText);
+      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+    }
+
+    const imageBlob = await imageResponse.blob();
+    const imageBuffer = await imageBlob.arrayBuffer();
+    const base64Image = btoa(
+      new Uint8Array(imageBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    );
+    
+    // Detect image format
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    const dataUrl = `data:${contentType};base64,${base64Image}`;
+    
+    console.log("Image converted to base64, processing with AI...");
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -53,7 +73,7 @@ serve(async (req) => {
               },
               {
                 type: "image_url",
-                image_url: { url: imageUrl }
+                image_url: { url: dataUrl }
               }
             ]
           }
