@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, LogOut, Upload } from "lucide-react";
+import { Receipt, LogOut, Upload, UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const [currency, setCurrency] = useState<string>(() => {
     return localStorage.getItem("currency") || "USD";
   });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -46,11 +48,26 @@ const Dashboard = () => {
       
       if (!session) {
         navigate("/auth");
+      } else {
+        // Fetch profile avatar
+        fetchProfileAvatar(session.user.id);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const fetchProfileAvatar = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .single();
+    
+    if (data?.avatar_url) {
+      setAvatarUrl(data.avatar_url);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -124,17 +141,21 @@ const Dashboard = () => {
               </SelectContent>
             </Select>
             
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/60">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
-                {user.email?.[0]?.toUpperCase() || "U"}
-              </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-xs text-muted-foreground">Signed in as</span>
-                <span className="text-sm font-medium truncate max-w-[140px]">
-                  {user.email}
-                </span>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/profile")}
+              className="gap-2"
+            >
+              <Avatar className="w-8 h-8">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback className="text-xs">
+                  {user.email?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <span className="hidden sm:inline">Profile</span>
+            </Button>
+            
             <Button
               variant="outline"
               size="sm"
