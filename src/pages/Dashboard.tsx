@@ -4,20 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, LogOut, Upload, UserCircle } from "lucide-react";
+import { Receipt, LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
 import GoogleSettings from "@/components/GoogleSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 
 const Dashboard = () => {
@@ -25,10 +18,10 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currency, setCurrency] = useState<string>(() => {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [currency] = useState<string>(() => {
     return localStorage.getItem("currency") || "USD";
   });
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -80,12 +73,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleCurrencyChange = (value: string) => {
-    setCurrency(value);
-    localStorage.setItem("currency", value);
-    toast.success(`Currency changed to ${value}`);
-  };
-
   const getCurrencySymbol = (curr: string) => {
     const symbols: Record<string, string> = {
       USD: "$",
@@ -128,20 +115,6 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Select value={currency} onValueChange={handleCurrencyChange}>
-              <SelectTrigger className="w-[100px] h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">$ USD</SelectItem>
-                <SelectItem value="GBP">£ GBP</SelectItem>
-                <SelectItem value="EUR">€ EUR</SelectItem>
-                <SelectItem value="JPY">¥ JPY</SelectItem>
-                <SelectItem value="AUD">A$ AUD</SelectItem>
-                <SelectItem value="CAD">C$ CAD</SelectItem>
-              </SelectContent>
-            </Select>
-
             <GoogleSettings userId={user.id} />
             
             <Button

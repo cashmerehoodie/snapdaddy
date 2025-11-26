@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -10,6 +10,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import Cropper from "react-easy-crop";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -31,6 +40,17 @@ const Profile = () => {
     confirmPassword: "",
   });
 
+  const [currency, setCurrency] = useState<string>(() => {
+    return localStorage.getItem("currency") || "USD";
+  });
+
+  // Image cropping states
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [showCropDialog, setShowCropDialog] = useState(false);
+
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -47,7 +67,7 @@ const Profile = () => {
         .from("profiles")
         .select("*")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle();
       
       if (profileData) {
         setProfile({
@@ -71,20 +91,79 @@ const Profile = () => {
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be less than 2MB");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
       return;
     }
+
+    // Read file and show crop dialog
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result as string);
+      setShowCropDialog(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const createImage = (url: string): Promise<HTMLImageElement> =>
+    new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener("load", () => resolve(image));
+      image.addEventListener("error", (error) => reject(error));
+      image.src = url;
+    });
+
+  const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+      throw new Error("No 2d context");
+    }
+
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          reject(new Error("Canvas is empty"));
+          return;
+        }
+        resolve(blob);
+      }, "image/jpeg", 0.95);
+    });
+  };
+
+  const handleCropSave = async () => {
+    if (!imageToCrop || !croppedAreaPixels || !user) return;
 
     setUploading(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      const fileName = `${user.id}/${Date.now()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(fileName, file);
+        .upload(fileName, croppedBlob);
 
       if (uploadError) throw uploadError;
 
@@ -101,11 +180,21 @@ const Profile = () => {
 
       setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
       toast.success("Profile picture updated!");
+      setShowCropDialog(false);
+      setImageToCrop(null);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
     } catch (error: any) {
       toast.error(error.message || "Error uploading avatar");
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleCurrencyChange = (value: string) => {
+    setCurrency(value);
+    localStorage.setItem("currency", value);
+    toast.success(`Currency changed to ${value}`);
   };
 
   const handleUsernameUpdate = async () => {
@@ -128,8 +217,12 @@ const Profile = () => {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ username: profile.username })
-        .eq("user_id", user.id);
+        .upsert({ 
+          user_id: user.id,
+          username: profile.username 
+        }, {
+          onConflict: 'user_id'
+        });
 
       if (error) {
         if (error.code === "23505") {
@@ -210,8 +303,30 @@ const Profile = () => {
         <div className="space-y-6">
           <Card className="border-border/50 shadow-lg">
             <CardHeader>
+              <CardTitle>Currency</CardTitle>
+              <CardDescription>Choose your preferred currency</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={currency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">$ USD - US Dollar</SelectItem>
+                  <SelectItem value="GBP">£ GBP - British Pound</SelectItem>
+                  <SelectItem value="EUR">€ EUR - Euro</SelectItem>
+                  <SelectItem value="JPY">¥ JPY - Japanese Yen</SelectItem>
+                  <SelectItem value="AUD">A$ AUD - Australian Dollar</SelectItem>
+                  <SelectItem value="CAD">C$ CAD - Canadian Dollar</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader>
               <CardTitle>Profile Picture</CardTitle>
-              <CardDescription>Upload a profile picture for your account</CardDescription>
+              <CardDescription>Upload and crop a profile picture for your account</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
               <Avatar className="w-32 h-32">
@@ -350,6 +465,62 @@ const Profile = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Dialog open={showCropDialog} onOpenChange={setShowCropDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Crop Profile Picture</DialogTitle>
+            </DialogHeader>
+            <div className="relative h-96 w-full bg-muted">
+              {imageToCrop && (
+                <Cropper
+                  image={imageToCrop}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                  cropShape="round"
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Zoom</Label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCropDialog(false);
+                  setImageToCrop(null);
+                }}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleCropSave} disabled={uploading}>
+                {uploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Picture"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
