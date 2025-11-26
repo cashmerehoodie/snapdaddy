@@ -11,16 +11,17 @@ interface MonthlyTotal {
 
 interface YearlyViewProps {
   userId: string;
+  refreshKey?: number;
 }
 
-const YearlyView = ({ userId }: YearlyViewProps) => {
+const YearlyView = ({ userId, refreshKey }: YearlyViewProps) => {
   const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([]);
   const [yearTotal, setYearTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchYearlyReceipts();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   const fetchYearlyReceipts = async () => {
     try {

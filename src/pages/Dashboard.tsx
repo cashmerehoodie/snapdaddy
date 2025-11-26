@@ -10,11 +10,13 @@ import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -68,7 +70,10 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => navigate("/")}
+          >
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-md">
               <Receipt className="w-6 h-6 text-primary-foreground" />
             </div>
@@ -76,15 +81,29 @@ const Dashboard = () => {
               SnapDaddy
             </h1>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSignOut}
-            className="gap-2"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 border border-border/60">
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold">
+                {user.email?.[0]?.toUpperCase() || "U"}
+              </div>
+              <div className="hidden sm:flex flex-col">
+                <span className="text-xs text-muted-foreground">Signed in as</span>
+                <span className="text-sm font-medium truncate max-w-[140px]">
+                  {user.email}
+                </span>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -99,16 +118,19 @@ const Dashboard = () => {
             <TabsTrigger value="yearly">Yearly</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="space-y-6">
-            <ReceiptUpload userId={user.id} />
+          <TabsContent value="upload" className="space-y-6" forceMount>
+            <ReceiptUpload
+              userId={user.id}
+              onProcessed={() => setRefreshKey((k) => k + 1)}
+            />
           </TabsContent>
 
-          <TabsContent value="monthly">
-            <MonthlyView userId={user.id} />
+          <TabsContent value="monthly" forceMount>
+            <MonthlyView userId={user.id} refreshKey={refreshKey} />
           </TabsContent>
 
-          <TabsContent value="yearly">
-            <YearlyView userId={user.id} />
+          <TabsContent value="yearly" forceMount>
+            <YearlyView userId={user.id} refreshKey={refreshKey} />
           </TabsContent>
         </Tabs>
       </main>

@@ -15,16 +15,17 @@ interface Receipt {
 
 interface MonthlyViewProps {
   userId: string;
+  refreshKey?: number;
 }
 
-const MonthlyView = ({ userId }: MonthlyViewProps) => {
+const MonthlyView = ({ userId, refreshKey }: MonthlyViewProps) => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetchMonthlyReceipts();
-  }, [userId]);
+  }, [userId, refreshKey]);
 
   const fetchMonthlyReceipts = async () => {
     try {

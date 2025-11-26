@@ -7,9 +7,10 @@ import { toast } from "sonner";
 
 interface ReceiptUploadProps {
   userId: string;
+  onProcessed?: () => void;
 }
 
-const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
+const ReceiptUpload = ({ userId, onProcessed }: ReceiptUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -122,6 +123,7 @@ const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
       });
 
       toast.success("Receipt processed successfully!");
+      onProcessed?.();
       setSelectedFile(null);
       setPreview(null);
       
