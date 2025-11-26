@@ -30,10 +30,28 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [lastReceipt, setLastReceipt] = useState<Receipt | null>(null);
+  const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
     fetchLastReceipt();
+    fetchUsername();
   }, [userId]);
+
+  const fetchUsername = async () => {
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      if (data?.username) {
+        setUsername(data.username);
+      }
+    } catch (error) {
+      console.error("Error fetching username:", error);
+    }
+  };
 
   const fetchLastReceipt = async () => {
     try {
@@ -192,6 +210,11 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   return (
     <Card className="max-w-2xl mx-auto border-border/50 shadow-lg">
       <CardHeader className="text-center">
+        {username && (
+          <p className="text-sm text-muted-foreground mb-2">
+            Welcome, <span className="font-semibold text-foreground">@{username}</span>
+          </p>
+        )}
         <CardTitle className="text-2xl">Upload Receipt</CardTitle>
         <CardDescription>
           Take a photo or upload an image of your receipt. Our AI will automatically extract the details.

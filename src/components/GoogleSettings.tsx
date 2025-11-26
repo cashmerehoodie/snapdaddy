@@ -47,16 +47,33 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     }
   };
 
+  const extractSheetId = (input: string): string => {
+    // If it's a URL, extract the ID
+    const urlMatch = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (urlMatch) {
+      return urlMatch[1];
+    }
+    // Otherwise return as-is (assume it's already just the ID)
+    return input;
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
+      const cleanSheetId = extractSheetId(sheetsId);
+      
       const { error } = await supabase
         .from("profiles")
-        .update({ google_sheets_id: sheetsId })
-        .eq("user_id", userId);
+        .upsert({ 
+          user_id: userId,
+          google_sheets_id: cleanSheetId 
+        }, {
+          onConflict: 'user_id'
+        });
 
       if (error) throw error;
 
+      setSheetsId(cleanSheetId); // Update state with clean ID
       toast.success("Google Sheets ID saved!");
       setOpen(false);
     } catch (error: any) {
@@ -132,15 +149,15 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
             <Label htmlFor="sheets-id">Google Sheets ID</Label>
             <Input
               id="sheets-id"
-              placeholder="Enter your Google Sheets ID"
+              placeholder="Paste Google Sheets URL or ID"
               value={sheetsId}
               onChange={(e) => setSheetsId(e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
-              Find this in your Google Sheets URL: 
+              Paste the full Google Sheets URL or just the ID:
               <br />
               <code className="text-xs">
-                https://docs.google.com/spreadsheets/d/<span className="text-primary font-semibold">[YOUR_SHEETS_ID]</span>/edit
+                https://docs.google.com/spreadsheets/d/<span className="text-primary font-semibold">[ID]</span>/edit
               </code>
             </p>
           </div>
