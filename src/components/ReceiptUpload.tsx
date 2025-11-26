@@ -109,10 +109,18 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.provider_token;
 
+      // Check if user has configured Google Sheets
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("google_sheets_id")
+        .eq("user_id", userId)
+        .single();
+
       if (accessToken && functionData?.data) {
         // Upload to Google Drive
         const driveFileName = `receipt_${functionData.data.date}_${functionData.data.merchant_name || 'unknown'}.${fileExt}`;
         
+        toast.loading("Uploading to Google Drive...", { id: "drive-upload" });
         const { data: driveData, error: driveError } = await supabase.functions.invoke('google-drive-upload', {
           body: { 
             imageUrl: publicUrl, 
@@ -124,23 +132,40 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         let driveLink = '';
         if (!driveError && driveData?.webViewLink) {
           driveLink = driveData.webViewLink;
-          toast.success("Saved to Google Drive!");
+          toast.success("✅ Saved to Google Drive!", { id: "drive-upload" });
+        } else {
+          toast.error("Failed to upload to Drive", { id: "drive-upload" });
+          console.error("Drive upload error:", driveError);
         }
 
-        // Sync to Google Sheets
-        const { error: sheetsError } = await supabase.functions.invoke('google-sheets-sync', {
-          body: {
-            accessToken,
-            receiptData: {
-              ...functionData.data,
-              driveLink
+        // Sync to Google Sheets if configured
+        if (profile?.google_sheets_id) {
+          toast.loading("Syncing to Google Sheets...", { id: "sheets-sync" });
+          const { error: sheetsError } = await supabase.functions.invoke('google-sheets-sync', {
+            body: {
+              accessToken,
+              sheetsId: profile.google_sheets_id,
+              receiptData: {
+                merchant_name: functionData.data.merchant_name,
+                amount: functionData.data.amount,
+                receipt_date: functionData.data.date,
+                category: functionData.data.category,
+                driveLink
+              }
             }
-          }
-        });
+          });
 
-        if (!sheetsError) {
-          toast.success("Synced to Google Sheets!");
+          if (!sheetsError) {
+            toast.success("✅ Synced to Google Sheets!", { id: "sheets-sync" });
+          } else {
+            toast.error("Failed to sync to Sheets", { id: "sheets-sync" });
+            console.error("Sheets sync error:", sheetsError);
+          }
+        } else {
+          toast.info("Configure Google Sheets ID in settings to enable sync");
         }
+      } else if (!accessToken) {
+        toast.info("Sign in with Google to enable Drive & Sheets sync");
       }
 
       toast.success("Receipt processed successfully!");
