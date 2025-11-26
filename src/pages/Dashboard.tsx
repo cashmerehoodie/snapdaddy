@@ -16,7 +16,6 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -118,19 +117,16 @@ const Dashboard = () => {
             <TabsTrigger value="yearly">Yearly</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="upload" className="space-y-6" forceMount>
-            <ReceiptUpload
-              userId={user.id}
-              onProcessed={() => setRefreshKey((k) => k + 1)}
-            />
+          <TabsContent value="upload" className="space-y-6">
+            <ReceiptUpload userId={user.id} />
           </TabsContent>
 
-          <TabsContent value="monthly" forceMount>
-            <MonthlyView userId={user.id} refreshKey={refreshKey} />
+          <TabsContent value="monthly">
+            <MonthlyView userId={user.id} />
           </TabsContent>
 
-          <TabsContent value="yearly" forceMount>
-            <YearlyView userId={user.id} refreshKey={refreshKey} />
+          <TabsContent value="yearly">
+            <YearlyView userId={user.id} />
           </TabsContent>
         </Tabs>
       </main>

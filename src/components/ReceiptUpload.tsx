@@ -1,25 +1,50 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface ReceiptUploadProps {
   userId: string;
-  onProcessed?: () => void;
 }
 
-const ReceiptUpload = ({ userId, onProcessed }: ReceiptUploadProps) => {
+interface Receipt {
+  id: string;
+  image_url: string;
+  receipt_date: string;
+  merchant_name: string | null;
+  amount: number;
+}
+
+const ReceiptUpload = ({ userId }: ReceiptUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [processedReceipt, setProcessedReceipt] = useState<{
-    imageUrl: string;
-    date: string;
-    merchant: string;
-  } | null>(null);
+  const [lastReceipt, setLastReceipt] = useState<Receipt | null>(null);
+
+  useEffect(() => {
+    fetchLastReceipt();
+  }, [userId]);
+
+  const fetchLastReceipt = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("receipts")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== "PGRST116") throw error;
+      setLastReceipt(data);
+    } catch (error) {
+      console.error("Error fetching last receipt:", error);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -112,18 +137,11 @@ const ReceiptUpload = ({ userId, onProcessed }: ReceiptUploadProps) => {
         }
       }
 
-      // Format date for display
-      const date = new Date(functionData.data.date);
-      const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getFullYear()).slice(-2)}`;
-
-      setProcessedReceipt({
-        imageUrl: publicUrl,
-        date: formattedDate,
-        merchant: functionData.data.merchant_name || 'Unknown'
-      });
-
       toast.success("Receipt processed successfully!");
-      onProcessed?.();
+      
+      // Fetch the newly created receipt
+      await fetchLastReceipt();
+      
       setSelectedFile(null);
       setPreview(null);
       
@@ -216,21 +234,24 @@ const ReceiptUpload = ({ userId, onProcessed }: ReceiptUploadProps) => {
           </Button>
         )}
 
-        {processedReceipt && (
+        {lastReceipt && (
           <div className="p-4 border border-border rounded-lg bg-secondary/20">
             <h3 className="text-sm font-semibold mb-3 text-foreground">Last Processed Receipt</h3>
             <div className="flex items-start gap-4">
               <img 
-                src={processedReceipt.imageUrl} 
+                src={lastReceipt.image_url} 
                 alt="Receipt thumbnail" 
                 className="w-20 h-20 object-cover rounded-md border border-border"
               />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  {processedReceipt.merchant}
+                  {lastReceipt.merchant_name || "Unknown Merchant"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Date: {processedReceipt.date}
+                  Date: {format(new Date(lastReceipt.receipt_date), "dd/MM/yy")}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Amount: ${Number(lastReceipt.amount).toFixed(2)}
                 </p>
               </div>
             </div>
