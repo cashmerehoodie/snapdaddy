@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,48 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Receipt } from "lucide-react";
 
+const APP_URL = "https://b3a58f0a-a147-4b86-8c3a-49f024eae2fb.lovableproject.com";
+
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  useEffect(() => {
+    // If a user already has a session (e.g. just returned from Google OAuth),
+    // send them straight to the dashboard.
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        navigate("/dashboard");
+      }
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        navigate("/dashboard");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = `${APP_URL}/dashboard`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -66,8 +96,8 @@ const Auth = () => {
       provider: "google",
       options: {
         scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
-        // Let the backend use its configured Site URL + callback
-        redirectTo: window.location.origin,
+        // Always send users back to the deployed SnapDaddy app, not the editor iframe
+        redirectTo: `${APP_URL}/auth`,
       },
     });
 
