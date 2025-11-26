@@ -40,7 +40,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
       .from("profiles")
       .select("google_sheets_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (data?.google_sheets_id) {
       setSheetsId(data.google_sheets_id);

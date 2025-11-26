@@ -114,7 +114,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         .from("profiles")
         .select("google_sheets_id")
         .eq("user_id", userId)
-        .single();
+        .maybeSingle();
 
       if (accessToken && functionData?.data) {
         // Upload to Google Drive
