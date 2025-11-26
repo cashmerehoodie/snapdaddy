@@ -32,12 +32,16 @@ const MonthlyView = ({ userId }: MonthlyViewProps) => {
       const start = startOfMonth(now);
       const end = endOfMonth(now);
 
+      // Format dates as YYYY-MM-DD for comparison with date column
+      const startDate = format(start, "yyyy-MM-dd");
+      const endDate = format(end, "yyyy-MM-dd");
+
       const { data, error } = await supabase
         .from("receipts")
         .select("*")
         .eq("user_id", userId)
-        .gte("receipt_date", start.toISOString())
-        .lte("receipt_date", end.toISOString())
+        .gte("receipt_date", startDate)
+        .lte("receipt_date", endDate)
         .order("receipt_date", { ascending: false });
 
       if (error) throw error;
