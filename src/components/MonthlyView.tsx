@@ -15,9 +15,10 @@ interface Receipt {
 
 interface MonthlyViewProps {
   userId: string;
+  currencySymbol: string;
 }
 
-const MonthlyView = ({ userId }: MonthlyViewProps) => {
+const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -83,7 +84,7 @@ const MonthlyView = ({ userId }: MonthlyViewProps) => {
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-1">Total Expenses</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                ${total.toFixed(2)}
+                {currencySymbol}{total.toFixed(2)}
               </p>
             </div>
           </div>
@@ -123,7 +124,7 @@ const MonthlyView = ({ userId }: MonthlyViewProps) => {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-primary">
-                    ${Number(receipt.amount).toFixed(2)}
+                    {currencySymbol}{Number(receipt.amount).toFixed(2)}
                   </p>
                 </div>
               </CardContent>
