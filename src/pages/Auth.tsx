@@ -9,8 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Receipt } from "lucide-react";
 
-const APP_URL = "https://b3a58f0a-a147-4b86-8c3a-49f024eae2fb.lovableproject.com";
-
 const Auth = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -50,7 +48,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${APP_URL}/dashboard`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -96,8 +94,7 @@ const Auth = () => {
       provider: "google",
       options: {
         scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
-        // Always send users back to the deployed SnapDaddy app, not the editor iframe
-        redirectTo: `${APP_URL}/auth`,
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     });
 
