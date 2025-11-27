@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.google-sheets-sync]
 verify_jwt = false
+
+[functions.setup-google-storage]
+verify_jwt = false

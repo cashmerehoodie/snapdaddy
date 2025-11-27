@@ -25,6 +25,8 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   const [driveFolder, setDriveFolder] = useState("");
   const [saving, setSaving] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [setupMode, setSetupMode] = useState<'choice' | 'auto' | 'manual' | null>(null);
+  const [autoSetupLoading, setAutoSetupLoading] = useState(false);
 
   useEffect(() => {
     checkGoogleConnection();
@@ -48,7 +50,15 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
 
   const checkGoogleConnection = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    setIsConnected(!!session?.provider_token);
+    const hasToken = !!session?.provider_token;
+    setIsConnected(hasToken);
+    
+    // If connected and no sheets configured yet, show choice
+    if (hasToken && !sheetsId) {
+      setSetupMode('choice');
+    } else if (sheetsId) {
+      setSetupMode('manual'); // Already configured
+    }
   };
 
   const extractSheetId = (input: string): string => {
@@ -102,6 +112,54 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     }
   };
 
+  const handleAutoSetup = async () => {
+    setAutoSetupLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.provider_token;
+
+      if (!accessToken) {
+        toast.error("Please connect Google first");
+        return;
+      }
+
+      toast.loading("Creating your Google Sheet and Drive folder...");
+
+      const { data, error } = await supabase.functions.invoke('setup-google-storage', {
+        body: {
+          accessToken,
+          userId,
+          folderName: driveFolder || 'SnapDaddy Receipts'
+        }
+      });
+
+      if (error) throw error;
+
+      setSheetsId(data.spreadsheetId);
+      setDriveFolder(data.folderName);
+      setSetupMode('manual');
+      
+      toast.success(
+        <div>
+          <p className="font-semibold">Setup complete! 🎉</p>
+          <a 
+            href={data.spreadsheetUrl} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs underline"
+          >
+            Open your new spreadsheet
+          </a>
+        </div>
+      );
+    } catch (error: any) {
+      toast.error(error.message || "Failed to auto-setup");
+      console.error("Auto-setup error:", error);
+    } finally {
+      setAutoSetupLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -149,6 +207,44 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
             )}
           </div>
 
+          {/* Setup Choice - shown after connecting but before configuring */}
+          {setupMode === 'choice' && (
+            <div className="space-y-4 p-4 bg-primary/5 border rounded-lg">
+              <div>
+                <h3 className="font-semibold mb-2">Choose Setup Method</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  How would you like to set up your Google integration?
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                <Button 
+                  onClick={handleAutoSetup} 
+                  disabled={autoSetupLoading}
+                  className="h-auto py-4 flex-col items-start"
+                >
+                  <span className="font-semibold">🚀 Quick Setup (Recommended)</span>
+                  <span className="text-xs opacity-90 font-normal">
+                    We'll create a new Sheet and Drive folder for you automatically
+                  </span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSetupMode('manual')}
+                  className="h-auto py-4 flex-col items-start"
+                >
+                  <span className="font-semibold">📋 Use Existing Sheet</span>
+                  <span className="text-xs opacity-70 font-normal">
+                    I already have a Google Sheet I want to use
+                  </span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Manual Setup Form - shown when manual is chosen or already configured */}
+          {setupMode === 'manual' && (
+            <>
+
           {/* Google Sheets ID */}
           <div className="space-y-2">
             <Label htmlFor="sheets-id">Google Sheets ID</Label>
@@ -192,6 +288,8 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
               You can organize receipts by using different folder names like "Work Receipts" or "Personal Expenses"
             </p>
           </div>
+          </>
+          )}
         </div>
 
         <DialogFooter>
