@@ -33,7 +33,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   const [username, setUsername] = useState<string>("");
 
   useEffect(() => {
-    fetchTodayReceipts();
+    fetchRecentReceipts();
     fetchUsername();
   }, [userId]);
 
@@ -53,20 +53,19 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
     }
   };
 
-  const fetchTodayReceipts = async () => {
+  const fetchRecentReceipts = async () => {
     try {
-      const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("receipts")
         .select("*")
         .eq("user_id", userId)
-        .eq("receipt_date", today)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(6);
 
       if (error) throw error;
       setTodayReceipts(data || []);
     } catch (error) {
-      console.error("Error fetching today's receipts:", error);
+      console.error("Error fetching recent receipts:", error);
     }
   };
 
@@ -224,8 +223,8 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
       
       toast.success(`All ${successCount} receipts processed!`);
       
-      // Fetch today's receipts
-      await fetchTodayReceipts();
+      // Fetch recent receipts
+      await fetchRecentReceipts();
       
       setSelectedFiles([]);
       setPreviews([]);
@@ -345,7 +344,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
 
         {todayReceipts.length > 0 && (
           <div className="p-4 border border-border rounded-lg bg-secondary/20">
-            <h3 className="text-sm font-semibold mb-3 text-foreground">Today's Receipts ({todayReceipts.length})</h3>
+            <h3 className="text-sm font-semibold mb-3 text-foreground">Recently Uploaded ({todayReceipts.length})</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {todayReceipts.map((receipt) => (
                 <Dialog key={receipt.id}>
