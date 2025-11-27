@@ -52,18 +52,47 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [selectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [monthsData, setMonthsData] = useState<MonthData[]>([]);
 
   useEffect(() => {
-    fetchYearlyData();
+    fetchAvailableYears();
   }, [userId]);
+
+  useEffect(() => {
+    if (selectedYear) {
+      fetchYearlyData();
+    }
+  }, [userId, selectedYear]);
 
   useEffect(() => {
     if (selectedMonth !== null) {
       fetchMonthReceipts();
     }
   }, [selectedMonth]);
+
+  const fetchAvailableYears = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("receipts")
+        .select("receipt_date")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      const years = new Set<number>();
+      (data || []).forEach((receipt) => {
+        const year = new Date(receipt.receipt_date).getFullYear();
+        years.add(year);
+      });
+
+      const sortedYears = Array.from(years).sort((a, b) => b - a);
+      setAvailableYears(sortedYears);
+    } catch (error) {
+      console.error("Error fetching available years:", error);
+    }
+  };
 
   const fetchYearlyData = async () => {
     try {
@@ -258,13 +287,31 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       <div className="max-w-6xl mx-auto space-y-6">
         <Card className="border-border/50 shadow-lg">
           <CardHeader>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <CalendarDays className="w-6 h-6 text-primary" />
-              {selectedYear} - Select a Month
-            </CardTitle>
-            <CardDescription>
-              Click on any month to view receipts
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <CalendarDays className="w-6 h-6 text-primary" />
+                  {selectedYear} - Select a Month
+                </CardTitle>
+                <CardDescription>
+                  Click on any month to view receipts
+                </CardDescription>
+              </div>
+              {availableYears.length > 1 && (
+                <div className="flex gap-2">
+                  {availableYears.map((year) => (
+                    <Button
+                      key={year}
+                      variant={year === selectedYear ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedYear(year)}
+                    >
+                      {year}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardHeader>
         </Card>
 

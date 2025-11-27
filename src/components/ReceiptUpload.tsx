@@ -79,15 +79,19 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
       return;
     }
 
-    setSelectedFiles(imageFiles);
+    // Append to existing files instead of replacing
+    const allFiles = [...selectedFiles, ...imageFiles];
+    setSelectedFiles(allFiles);
     
-    // Generate previews for all selected files
-    const newPreviews: string[] = [];
+    // Generate previews for newly added files
+    const startIndex = selectedFiles.length;
+    const newPreviews = [...previews];
+    
     imageFiles.forEach((file, index) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        newPreviews[index] = reader.result as string;
-        if (newPreviews.filter(p => p).length === imageFiles.length) {
+        newPreviews[startIndex + index] = reader.result as string;
+        if (newPreviews.filter(p => p).length === allFiles.length) {
           setPreviews([...newPreviews]);
         }
       };

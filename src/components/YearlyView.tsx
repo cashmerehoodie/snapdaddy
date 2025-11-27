@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Calendar, TrendingUp } from "lucide-react";
 import { format, startOfYear, endOfYear } from "date-fns";
 
@@ -18,16 +19,45 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
   const [monthlyTotals, setMonthlyTotals] = useState<MonthlyTotal[]>([]);
   const [yearTotal, setYearTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   useEffect(() => {
-    fetchYearlyReceipts();
+    fetchAvailableYears();
   }, [userId]);
+
+  useEffect(() => {
+    if (selectedYear) {
+      fetchYearlyReceipts();
+    }
+  }, [userId, selectedYear]);
+
+  const fetchAvailableYears = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("receipts")
+        .select("receipt_date")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      const years = new Set<number>();
+      (data || []).forEach((receipt) => {
+        const year = new Date(receipt.receipt_date).getFullYear();
+        years.add(year);
+      });
+
+      const sortedYears = Array.from(years).sort((a, b) => b - a);
+      setAvailableYears(sortedYears);
+    } catch (error) {
+      console.error("Error fetching available years:", error);
+    }
+  };
 
   const fetchYearlyReceipts = async () => {
     try {
-      const now = new Date();
-      const start = startOfYear(now);
-      const end = endOfYear(now);
+      const start = startOfYear(new Date(selectedYear, 0, 1));
+      const end = endOfYear(new Date(selectedYear, 0, 1));
 
       // Format dates as YYYY-MM-DD for comparison with date column
       const startDate = format(start, "yyyy-MM-dd");
@@ -86,7 +116,23 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
                 <Calendar className="w-6 h-6 text-primary" />
                 Year Overview
               </CardTitle>
-              <CardDescription>{format(new Date(), "yyyy")}</CardDescription>
+              <CardDescription className="flex items-center gap-2">
+                {selectedYear}
+                {availableYears.length > 1 && (
+                  <div className="flex gap-1 ml-4">
+                    {availableYears.map((year) => (
+                      <Button
+                        key={year}
+                        variant={year === selectedYear ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedYear(year)}
+                      >
+                        {year}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </CardDescription>
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground mb-1">Total Yearly Expenses</p>
