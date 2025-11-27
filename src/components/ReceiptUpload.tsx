@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, FileText, Loader2 } from "lucide-react";
+import { Upload, FileText, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -60,8 +60,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         .from("receipts")
         .select("*")
         .eq("user_id", userId)
-        .gte("created_at", `${today}T00:00:00`)
-        .lte("created_at", `${today}T23:59:59`)
+        .eq("receipt_date", today)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -95,6 +94,19 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const removePreview = (indexToRemove: number) => {
+    const newFiles = selectedFiles.filter((_, index) => index !== indexToRemove);
+    const newPreviews = previews.filter((_, index) => index !== indexToRemove);
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+    
+    // If no files left, reset the input
+    if (newFiles.length === 0) {
+      const input = document.getElementById("receipt-upload") as HTMLInputElement;
+      if (input) input.value = "";
+    }
   };
 
   const handleUpload = async () => {
@@ -262,13 +274,24 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
               <div className="w-full space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {previews.map((preview, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="relative group">
                       <img
                         src={preview}
                         alt={`Receipt preview ${index + 1}`}
                         className="rounded-lg shadow-md w-full h-40 object-cover"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg flex items-end justify-center pb-2">
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          removePreview(index);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent rounded-lg flex items-end justify-center pb-2 pointer-events-none">
                         <p className="text-white text-xs font-medium">{selectedFiles[index]?.name}</p>
                       </div>
                     </div>
