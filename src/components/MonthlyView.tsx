@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarDays, DollarSign, Trash2, CheckSquare, X } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { CalendarDays, DollarSign, Trash2, CheckSquare, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfYear, endOfYear } from "date-fns";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -39,16 +39,44 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [total, setTotal] = useState(0);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetchAvailableMonths();
+  }, [userId]);
 
   useEffect(() => {
     fetchMonthlyReceipts();
-  }, [userId]);
+  }, [userId, selectedDate]);
+
+  const fetchAvailableMonths = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("receipts")
+        .select("receipt_date")
+        .eq("user_id", userId)
+        .order("receipt_date", { ascending: false });
+
+      if (error) throw error;
+
+      // Extract unique year-month combinations
+      const months = new Set<string>();
+      (data || []).forEach(receipt => {
+        const date = new Date(receipt.receipt_date);
+        months.add(format(date, "yyyy-MM"));
+      });
+
+      setAvailableMonths(Array.from(months).sort().reverse());
+    } catch (error) {
+      console.error("Error fetching available months:", error);
+    }
+  };
 
   const fetchMonthlyReceipts = async () => {
     try {
-      const now = new Date();
-      const start = startOfMonth(now);
-      const end = endOfMonth(now);
+      const start = startOfMonth(selectedDate);
+      const end = endOfMonth(selectedDate);
 
       // Format dates as YYYY-MM-DD for comparison with date column
       const startDate = format(start, "yyyy-MM-dd");
@@ -74,6 +102,18 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     }
   };
 
+  const goToPreviousMonth = () => {
+    setSelectedDate(prev => subMonths(prev, 1));
+  };
+
+  const goToNextMonth = () => {
+    setSelectedDate(prev => addMonths(prev, 1));
+  };
+
+  const goToToday = () => {
+    setSelectedDate(new Date());
+  };
+
   const handleDelete = async (receiptId: string, imageUrl: string) => {
     try {
       toast.loading("Deleting receipt...", { id: "delete-receipt" });
@@ -97,6 +137,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       
       // Refresh the list
       await fetchMonthlyReceipts();
+      await fetchAvailableMonths();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete receipt", { id: "delete-receipt" });
       console.error("Delete error:", error);
@@ -140,6 +181,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       
       // Refresh the list
       await fetchMonthlyReceipts();
+      await fetchAvailableMonths();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete receipts", { id: "delete-multiple" });
       console.error("Delete error:", error);
@@ -174,19 +216,46 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     );
   }
 
+  const isCurrentMonth = format(selectedDate, "yyyy-MM") === format(new Date(), "yyyy-MM");
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Card className="border-border/50 shadow-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <CalendarDays className="w-6 h-6 text-primary" />
-                This Month
-              </CardTitle>
-              <CardDescription>
-                {format(new Date(), "MMMM yyyy")}
-              </CardDescription>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToPreviousMonth}
+                className="h-8 w-8"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <CalendarDays className="w-6 h-6 text-primary" />
+                  {format(selectedDate, "MMMM yyyy")}
+                </CardTitle>
+                {!isCurrentMonth && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={goToToday}
+                    className="p-0 h-auto text-xs text-muted-foreground hover:text-primary"
+                  >
+                    Back to current month
+                  </Button>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={goToNextMonth}
+                className="h-8 w-8"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
             <div className="flex items-center gap-4">
               {receipts.length > 0 && !isSelecting && (
@@ -266,14 +335,50 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
         </CardHeader>
       </Card>
 
+      {availableMonths.length > 1 && (
+        <Card className="border-border/50">
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-2">
+              <p className="text-sm text-muted-foreground w-full mb-2">Quick jump to:</p>
+              {availableMonths.map((monthKey) => {
+                const monthDate = new Date(monthKey + "-01");
+                const isSelected = format(selectedDate, "yyyy-MM") === monthKey;
+                return (
+                  <Button
+                    key={monthKey}
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedDate(monthDate)}
+                    className="text-xs"
+                  >
+                    {format(monthDate, "MMM yyyy")}
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {receipts.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <DollarSign className="w-16 h-16 text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground text-center">
-              No receipts uploaded this month yet.
-              <br />
-              Upload your first receipt to get started!
+              No receipts found for {format(selectedDate, "MMMM yyyy")}.
+              {!isCurrentMonth && (
+                <>
+                  <br />
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={goToToday}
+                    className="p-0 h-auto text-sm"
+                  >
+                    Go to current month
+                  </Button>
+                </>
+              )}
             </p>
           </CardContent>
         </Card>
