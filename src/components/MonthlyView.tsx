@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarDays, DollarSign, Trash2, CheckSquare, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfYear, endOfYear } from "date-fns";
+import { CalendarDays, DollarSign, Trash2, CheckSquare, X, ArrowLeft } from "lucide-react";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -28,10 +28,22 @@ interface Receipt {
   image_url: string;
 }
 
+interface MonthData {
+  month: string;
+  monthIndex: number;
+  total: number;
+  count: number;
+}
+
 interface MonthlyViewProps {
   userId: string;
   currencySymbol: string;
 }
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
 
 const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
@@ -39,46 +51,74 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [total, setTotal] = useState(0);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear] = useState(new Date().getFullYear());
+  const [monthsData, setMonthsData] = useState<MonthData[]>([]);
 
   useEffect(() => {
-    fetchAvailableMonths();
+    fetchYearlyData();
   }, [userId]);
 
   useEffect(() => {
-    fetchMonthlyReceipts();
-  }, [userId, selectedDate]);
+    if (selectedMonth !== null) {
+      fetchMonthReceipts();
+    }
+  }, [selectedMonth]);
 
-  const fetchAvailableMonths = async () => {
+  const fetchYearlyData = async () => {
     try {
+      setLoading(true);
+      const start = startOfYear(new Date(selectedYear, 0, 1));
+      const end = endOfYear(new Date(selectedYear, 0, 1));
+
+      const startDate = format(start, "yyyy-MM-dd");
+      const endDate = format(end, "yyyy-MM-dd");
+
       const { data, error } = await supabase
         .from("receipts")
-        .select("receipt_date")
+        .select("amount, receipt_date")
         .eq("user_id", userId)
-        .order("receipt_date", { ascending: false });
+        .gte("receipt_date", startDate)
+        .lte("receipt_date", endDate);
 
       if (error) throw error;
 
-      // Extract unique year-month combinations
-      const months = new Set<string>();
-      (data || []).forEach(receipt => {
+      // Group by month
+      const monthMap = new Map<number, { total: number; count: number }>();
+
+      (data || []).forEach((receipt) => {
         const date = new Date(receipt.receipt_date);
-        months.add(format(date, "yyyy-MM"));
+        const month = date.getMonth();
+        const amount = Number(receipt.amount);
+        const current = monthMap.get(month) || { total: 0, count: 0 };
+        monthMap.set(month, {
+          total: current.total + amount,
+          count: current.count + 1
+        });
       });
 
-      setAvailableMonths(Array.from(months).sort().reverse());
+      const monthsDataArray = MONTHS.map((month, index) => ({
+        month,
+        monthIndex: index,
+        total: monthMap.get(index)?.total || 0,
+        count: monthMap.get(index)?.count || 0
+      }));
+
+      setMonthsData(monthsDataArray);
     } catch (error) {
-      console.error("Error fetching available months:", error);
+      console.error("Error fetching yearly data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchMonthlyReceipts = async () => {
-    try {
-      const start = startOfMonth(selectedDate);
-      const end = endOfMonth(selectedDate);
+  const fetchMonthReceipts = async () => {
+    if (selectedMonth === null) return;
 
-      // Format dates as YYYY-MM-DD for comparison with date column
+    try {
+      const start = startOfMonth(new Date(selectedYear, selectedMonth, 1));
+      const end = endOfMonth(new Date(selectedYear, selectedMonth, 1));
+
       const startDate = format(start, "yyyy-MM-dd");
       const endDate = format(end, "yyyy-MM-dd");
 
@@ -97,21 +137,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       setTotal(sum);
     } catch (error) {
       console.error("Error fetching receipts:", error);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  const goToPreviousMonth = () => {
-    setSelectedDate(prev => subMonths(prev, 1));
-  };
-
-  const goToNextMonth = () => {
-    setSelectedDate(prev => addMonths(prev, 1));
-  };
-
-  const goToToday = () => {
-    setSelectedDate(new Date());
   };
 
   const handleDelete = async (receiptId: string, imageUrl: string) => {
@@ -136,8 +162,8 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       toast.success("Receipt deleted successfully", { id: "delete-receipt" });
       
       // Refresh the list
-      await fetchMonthlyReceipts();
-      await fetchAvailableMonths();
+      await fetchMonthReceipts();
+      await fetchYearlyData();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete receipt", { id: "delete-receipt" });
       console.error("Delete error:", error);
@@ -180,8 +206,8 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       setIsSelecting(false);
       
       // Refresh the list
-      await fetchMonthlyReceipts();
-      await fetchAvailableMonths();
+      await fetchMonthReceipts();
+      await fetchYearlyData();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete receipts", { id: "delete-multiple" });
       console.error("Delete error:", error);
@@ -216,46 +242,90 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     );
   }
 
-  const isCurrentMonth = format(selectedDate, "yyyy-MM") === format(new Date(), "yyyy-MM");
+  if (loading) {
+    return (
+      <Card className="max-w-4xl mx-auto">
+        <CardContent className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Loading...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show month grid when no month is selected
+  if (selectedMonth === null) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-2xl flex items-center gap-2">
+              <CalendarDays className="w-6 h-6 text-primary" />
+              {selectedYear} - Select a Month
+            </CardTitle>
+            <CardDescription>
+              Click on any month to view receipts
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {monthsData.map((monthData) => (
+            <Card
+              key={monthData.monthIndex}
+              className={`border-border/50 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+                monthData.count > 0 ? 'hover:border-primary' : 'opacity-60'
+              }`}
+              onClick={() => monthData.count > 0 && setSelectedMonth(monthData.monthIndex)}
+            >
+              <CardContent className="py-6 text-center">
+                <h3 className="font-semibold text-lg mb-2">{monthData.month}</h3>
+                {monthData.count > 0 ? (
+                  <>
+                    <p className="text-2xl font-bold text-primary mb-1">
+                      {currencySymbol}{monthData.total.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {monthData.count} receipt{monthData.count !== 1 ? 's' : ''}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No receipts</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Show selected month's receipts
+  const selectedMonthName = MONTHS[selectedMonth];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <Card className="border-border/50 shadow-lg">
         <CardHeader>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
                 size="icon"
-                onClick={goToPreviousMonth}
+                onClick={() => {
+                  setSelectedMonth(null);
+                  setIsSelecting(false);
+                  setSelectedIds(new Set());
+                }}
                 className="h-8 w-8"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ArrowLeft className="h-4 w-4" />
               </Button>
               <div>
                 <CardTitle className="text-2xl flex items-center gap-2">
                   <CalendarDays className="w-6 h-6 text-primary" />
-                  {format(selectedDate, "MMMM yyyy")}
+                  {selectedMonthName} {selectedYear}
                 </CardTitle>
-                {!isCurrentMonth && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={goToToday}
-                    className="p-0 h-auto text-xs text-muted-foreground hover:text-primary"
-                  >
-                    Back to current month
-                  </Button>
-                )}
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={goToNextMonth}
-                className="h-8 w-8"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
             </div>
             <div className="flex items-center gap-4">
               {receipts.length > 0 && !isSelecting && (
@@ -335,50 +405,12 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
         </CardHeader>
       </Card>
 
-      {availableMonths.length > 1 && (
-        <Card className="border-border/50">
-          <CardContent className="pt-6">
-            <div className="flex flex-wrap gap-2">
-              <p className="text-sm text-muted-foreground w-full mb-2">Quick jump to:</p>
-              {availableMonths.map((monthKey) => {
-                const monthDate = new Date(monthKey + "-01");
-                const isSelected = format(selectedDate, "yyyy-MM") === monthKey;
-                return (
-                  <Button
-                    key={monthKey}
-                    variant={isSelected ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedDate(monthDate)}
-                    className="text-xs"
-                  >
-                    {format(monthDate, "MMM yyyy")}
-                  </Button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {receipts.length === 0 ? (
         <Card className="border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <DollarSign className="w-16 h-16 text-muted-foreground/30 mb-4" />
             <p className="text-muted-foreground text-center">
-              No receipts found for {format(selectedDate, "MMMM yyyy")}.
-              {!isCurrentMonth && (
-                <>
-                  <br />
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={goToToday}
-                    className="p-0 h-auto text-sm"
-                  >
-                    Go to current month
-                  </Button>
-                </>
-              )}
+              No receipts found for {selectedMonthName} {selectedYear}.
             </p>
           </CardContent>
         </Card>
