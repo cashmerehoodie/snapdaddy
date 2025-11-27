@@ -261,6 +261,78 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     }
   };
 
+  const handleDeleteYear = async (year: number) => {
+    try {
+      toast.loading(`Deleting all receipts from ${year}...`, { id: "delete-year" });
+
+      const start = startOfYear(new Date(year, 0, 1));
+      const end = endOfYear(new Date(year, 0, 1));
+      const startDate = format(start, "yyyy-MM-dd");
+      const endDate = format(end, "yyyy-MM-dd");
+
+      // Get all receipts for this year
+      const { data: receiptsToDelete, error: fetchError } = await supabase
+        .from("receipts")
+        .select("id, image_url")
+        .eq("user_id", userId)
+        .gte("receipt_date", startDate)
+        .lte("receipt_date", endDate);
+
+      if (fetchError) throw fetchError;
+
+      if (!receiptsToDelete || receiptsToDelete.length === 0) {
+        toast.error("No receipts found for this year", { id: "delete-year" });
+        return;
+      }
+
+      // Delete from storage
+      const filePaths = receiptsToDelete
+        .map((r) => {
+          const fileName = r.image_url.split("/").pop();
+          return fileName ? `${userId}/${fileName}` : null;
+        })
+        .filter(Boolean) as string[];
+
+      if (filePaths.length > 0) {
+        await supabase.storage.from("receipts").remove(filePaths);
+      }
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from("receipts")
+        .delete()
+        .eq("user_id", userId)
+        .gte("receipt_date", startDate)
+        .lte("receipt_date", endDate);
+
+      if (deleteError) throw deleteError;
+
+      toast.success(`Successfully deleted ${receiptsToDelete.length} receipts from ${year}`, { id: "delete-year" });
+
+      // Refresh data
+      await fetchAvailableYears();
+      
+      // If deleted current year, switch to most recent available year
+      if (year === selectedYear && availableYears.length > 1) {
+        const otherYears = availableYears.filter(y => y !== year);
+        if (otherYears.length > 0) {
+          setSelectedYear(otherYears[0]);
+        }
+      } else if (availableYears.length === 1) {
+        // If this was the only year, reset to month grid
+        setSelectedMonth(null);
+      } else {
+        await fetchYearlyData();
+        if (selectedMonth !== null) {
+          await fetchMonthReceipts();
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete receipts", { id: "delete-year" });
+      console.error("Delete year error:", error);
+    }
+  };
+
   if (loading) {
     return (
       <Card className="max-w-4xl mx-auto">
@@ -300,14 +372,45 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
               {availableYears.length > 1 && (
                 <div className="flex gap-2">
                   {availableYears.map((year) => (
-                    <Button
-                      key={year}
-                      variant={year === selectedYear ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedYear(year)}
-                    >
-                      {year}
-                    </Button>
+                    <div key={year} className="relative inline-block group">
+                      <Button
+                        variant={year === selectedYear ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedYear(year)}
+                        className="pr-8"
+                      >
+                        {year}
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive hover:bg-destructive/90 text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete All Receipts from {year}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete all receipts from {year}? This action cannot be undone and will permanently remove all receipts and their associated images from this year.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteYear(year)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete All
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   ))}
                 </div>
               )}
