@@ -63,6 +63,25 @@ serve(async (req) => {
     // Create sheet if it doesn't exist
     if (!sheetExists) {
       console.log("Creating new sheet:", sheetName);
+      
+      // Calculate the correct index to insert the sheet in chronological order
+      const existingSheets = sheetsData.sheets || [];
+      let insertIndex = 0;
+      
+      for (let i = 0; i < existingSheets.length; i++) {
+        const sheetTitle = existingSheets[i].properties.title;
+        // Try to parse as "Month Year" format
+        const match = sheetTitle.match(/^(\w+)\s+(\d{4})$/);
+        if (match) {
+          const sheetDate = new Date(`${match[1]} 1, ${match[2]}`);
+          const newSheetDate = new Date(`${monthName} 1, ${year}`);
+          
+          if (newSheetDate > sheetDate) {
+            insertIndex = i + 1;
+          }
+        }
+      }
+      
       await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}:batchUpdate`,
         {
@@ -77,6 +96,7 @@ serve(async (req) => {
                 addSheet: {
                   properties: {
                     title: sheetName,
+                    index: insertIndex,
                   },
                 },
               },
