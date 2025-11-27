@@ -107,17 +107,20 @@ serve(async (req) => {
       throw new Error("Failed to parse receipt data from AI response");
     }
 
-    // Validate and fix the date if needed
+    // Validate and normalize the date
     const today = new Date();
     const extractedDate = new Date(receiptData.date);
-    
-    // If the date is more than 30 days in the past or future, use today's date
-    const daysDiff = Math.abs((today.getTime() - extractedDate.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysDiff > 30 || isNaN(extractedDate.getTime())) {
+
+    if (isNaN(extractedDate.getTime())) {
       console.log(`Invalid date detected: ${receiptData.date}, using today's date instead`);
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
+      receiptData.date = `${year}-${month}-${day}`;
+    } else {
+      const year = extractedDate.getFullYear();
+      const month = String(extractedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(extractedDate.getDate()).padStart(2, '0');
       receiptData.date = `${year}-${month}-${day}`;
     }
 
