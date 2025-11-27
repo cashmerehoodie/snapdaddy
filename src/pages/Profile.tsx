@@ -245,16 +245,21 @@ const Profile = () => {
 
   const handlePasswordChange = async () => {
     const passwordSchema = z.string()
-      .min(6, "Password must be at least 6 characters");
+      .min(6, "Password must be at least 6 characters")
+      .max(128, "Password must be less than 128 characters")
+      .trim();
+
+    const trimmedNewPassword = passwords.newPassword.trim();
+    const trimmedConfirmPassword = passwords.confirmPassword.trim();
 
     try {
-      passwordSchema.parse(passwords.newPassword);
+      passwordSchema.parse(trimmedNewPassword);
     } catch (error: any) {
       toast.error(error.errors?.[0]?.message || "Invalid password");
       return;
     }
 
-    if (passwords.newPassword !== passwords.confirmPassword) {
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
       toast.error("Passwords do not match");
       return;
     }
@@ -263,12 +268,12 @@ const Profile = () => {
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: passwords.newPassword,
+        password: trimmedNewPassword,
       });
 
       if (error) throw error;
 
-      toast.success("Password updated!");
+      toast.success("Password updated successfully!");
       setPasswords({ newPassword: "", confirmPassword: "" });
     } catch (error: any) {
       toast.error(error.message || "Error updating password");
@@ -475,7 +480,12 @@ const Profile = () => {
                   onChange={(e) => setPasswords(prev => ({ ...prev, newPassword: e.target.value }))}
                   placeholder="Enter new password"
                   disabled={saving}
+                  minLength={6}
+                  maxLength={128}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Minimum 6 characters required
+                </p>
               </div>
               
               <div className="space-y-2">
