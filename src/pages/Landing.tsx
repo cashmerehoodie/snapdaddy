@@ -50,7 +50,7 @@ const Landing = () => {
         {user ? (
           <Button
             onClick={() => navigate("/dashboard")}
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:scale-105 transition-all duration-300 shadow-md"
           >
             Go to Dashboard
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -59,7 +59,7 @@ const Landing = () => {
           <Button
             onClick={() => navigate("/auth")}
             variant="outline"
-            className="border-primary/50 hover:bg-primary/10"
+            className="border-primary/50 hover:bg-primary/10 hover:scale-105 transition-all duration-300"
           >
             Sign In
           </Button>
@@ -68,12 +68,12 @@ const Landing = () => {
 
       <main className="container mx-auto px-4 py-20">
         <section className="max-w-4xl mx-auto text-center space-y-8 mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4">
-            <Sparkles className="w-4 h-4 text-primary" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4 animate-fade-in">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse" />
             <span className="text-sm font-medium text-primary">AI-Powered Receipt Tracking</span>
           </div>
           
-          <h2 className="text-5xl md:text-6xl font-bold leading-tight">
+          <h2 className="text-5xl md:text-6xl font-bold leading-tight animate-slide-up" style={{ animationDelay: '0.1s' }}>
             Never lose a{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               receipt
@@ -81,15 +81,15 @@ const Landing = () => {
             again
           </h2>
           
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
             Snap a photo, let AI do the rest. SnapDaddy automatically organizes your receipts,
             tracks expenses, and prepares you for tax season.
           </p>
 
           {user && (
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-12">
-              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-fade-in" style={{ animationDelay: '0.3s' }} onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center animate-float">
                   <Receipt className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Upload Receipts</h3>
@@ -98,8 +98,8 @@ const Landing = () => {
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-fade-in" style={{ animationDelay: '0.4s' }} onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center animate-float" style={{ animationDelay: '0.5s' }}>
                   <TrendingUp className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Track Expenses</h3>
@@ -108,8 +108,8 @@ const Landing = () => {
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/dashboard")}>
-                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+              <div className="p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-fade-in" style={{ animationDelay: '0.5s' }} onClick={() => navigate("/dashboard")}>
+                <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center animate-float" style={{ animationDelay: '1s' }}>
                   <Shield className="w-6 h-6 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">Secure Sync</h3>
@@ -122,26 +122,26 @@ const Landing = () => {
 
           {!user && (
             <>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
                 <Button
                   size="lg"
                   onClick={() => navigate("/auth")}
-                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-lg px-8 shadow-lg"
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:scale-105 transition-all duration-300 text-lg px-8 shadow-lg"
                 >
                   Get Started Free
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-primary/50 hover:bg-primary/10 text-lg px-8"
+                  className="border-primary/50 hover:bg-primary/10 hover:scale-105 transition-all duration-300 text-lg px-8"
                 >
                   Learn More
                 </Button>
               </div>
 
               <section className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-20">
-                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center">
+                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center transition-transform duration-300 hover:rotate-12">
                     <Sparkles className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold">AI-Powered Scanning</h3>
@@ -150,8 +150,8 @@ const Landing = () => {
                   </p>
                 </div>
 
-                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center">
+                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center transition-transform duration-300 hover:rotate-12">
                     <TrendingUp className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold">Smart Organization</h3>
@@ -160,8 +160,8 @@ const Landing = () => {
                   </p>
                 </div>
 
-                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-lg transition-shadow">
-                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center">
+                <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+                  <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center transition-transform duration-300 hover:rotate-12">
                     <Shield className="w-8 h-8 text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold">Secure & Private</h3>

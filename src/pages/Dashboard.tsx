@@ -133,13 +133,13 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
       <Onboarding userId={user.id} />
       
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50 animate-slide-up">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform duration-300"
             onClick={() => navigate("/")}
           >
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-md hover:rotate-12 transition-transform duration-300">
               <Receipt className="w-6 h-6 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">

@@ -306,19 +306,19 @@ const Profile = () => {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10 py-8 animate-fade-in">
       <div className="container mx-auto px-4 max-w-2xl">
         <Button
           variant="ghost"
           onClick={() => navigate("/dashboard")}
-          className="mb-6"
+          className="mb-6 hover:scale-105 transition-transform duration-300"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
 
         <div className="space-y-6">
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300">
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
               <CardDescription>Customize how SnapDaddy looks on your device</CardDescription>
@@ -330,7 +330,7 @@ const Profile = () => {
                   <Button
                     variant={theme === "light" ? "default" : "outline"}
                     onClick={() => setTheme("light")}
-                    className="w-full gap-2"
+                    className="w-full gap-2 hover:scale-105 transition-transform duration-300"
                   >
                     <Sun className="w-4 h-4" />
                     Light
@@ -338,7 +338,7 @@ const Profile = () => {
                   <Button
                     variant={theme === "dark" ? "default" : "outline"}
                     onClick={() => setTheme("dark")}
-                    className="w-full gap-2"
+                    className="w-full gap-2 hover:scale-105 transition-transform duration-300"
                   >
                     <Moon className="w-4 h-4" />
                     Dark
@@ -346,7 +346,7 @@ const Profile = () => {
                   <Button
                     variant={theme === "system" ? "default" : "outline"}
                     onClick={() => setTheme("system")}
-                    className="w-full"
+                    className="w-full hover:scale-105 transition-transform duration-300"
                   >
                     System
                   </Button>
@@ -358,7 +358,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.1s' }}>
             <CardHeader>
               <CardTitle>Currency</CardTitle>
               <CardDescription>Choose your preferred currency</CardDescription>
@@ -380,7 +380,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.2s' }}>
             <CardHeader>
               <CardTitle>Date Format</CardTitle>
               <CardDescription>Choose how dates are displayed throughout the app</CardDescription>
@@ -398,13 +398,13 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.3s' }}>
             <CardHeader>
               <CardTitle>Profile Picture</CardTitle>
               <CardDescription>Upload and crop a profile picture for your account</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
-              <Avatar className="w-32 h-32">
+              <Avatar className="w-32 h-32 hover:scale-110 transition-transform duration-300">
                 <AvatarImage src={profile.avatar_url || undefined} />
                 <AvatarFallback className="text-2xl">
                   {user.email?.[0]?.toUpperCase() || "U"}
@@ -445,7 +445,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.4s' }}>
             <CardHeader>
               <CardTitle>Username</CardTitle>
               <CardDescription>Choose a unique username for your account</CardDescription>
@@ -482,7 +482,7 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 shadow-lg">
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.5s' }}>
             <CardHeader>
               <CardTitle>Change Password</CardTitle>
               <CardDescription>Update your account password</CardDescription>

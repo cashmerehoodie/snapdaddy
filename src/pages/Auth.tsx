@@ -112,15 +112,15 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-primary-light/20 p-4">
-      <Card className="w-full max-w-md border-border/50 shadow-lg">
+      <Card className="w-full max-w-md border-border/50 shadow-lg animate-scale-in">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-md">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center shadow-md animate-float">
             <Receipt className="w-8 h-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent animate-fade-in">
             SnapDaddy
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-muted-foreground animate-fade-in" style={{ animationDelay: '0.1s' }}>
             Your smart receipt tracker powered by AI
           </CardDescription>
         </CardHeader>

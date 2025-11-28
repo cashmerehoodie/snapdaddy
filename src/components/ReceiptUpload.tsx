@@ -333,15 +333,15 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   };
 
   return (
-    <Card className="max-w-2xl mx-auto border-border/50 shadow-lg">
+    <Card className="max-w-2xl mx-auto border-border/50 shadow-lg animate-fade-in">
       <CardHeader className="text-center">
         {username && (
-          <p className="text-sm text-muted-foreground mb-2">
+          <p className="text-sm text-muted-foreground mb-2 animate-slide-up">
             Welcome, <span className="font-semibold text-foreground">@{username}</span>
           </p>
         )}
-        <CardTitle className="text-2xl">Upload Receipt</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-2xl animate-fade-in">Upload Receipt</CardTitle>
+        <CardDescription className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
           Take a photo or upload an image of your receipt. Our AI will automatically extract the details.
         </CardDescription>
       </CardHeader>
@@ -350,7 +350,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
           <PhoneUploadQR userId={userId} onUploadComplete={fetchRecentReceipts} />
         </div>
         
-        <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center transition-colors hover:border-primary/50">
+        <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center transition-all duration-300 hover:border-primary/50 hover:bg-primary/5 hover:scale-[1.02]">
           <input
             id="receipt-upload"
             type="file"
@@ -367,11 +367,11 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
               <div className="w-full space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   {previews.map((preview, index) => (
-                    <div key={index} className="relative group">
+                    <div key={index} className="relative group animate-scale-in" style={{ animationDelay: `${index * 0.1}s` }}>
                       <img
                         src={preview}
                         alt={`Receipt preview ${index + 1}`}
-                        className="rounded-lg shadow-md w-full h-40 object-cover"
+                        className="rounded-lg shadow-md w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       <Button
                         size="icon"
