@@ -12,6 +12,7 @@ import YearlyView from "@/components/YearlyView";
 import CategoryView from "@/components/CategoryView";
 import MigrateData from "@/components/MigrateData";
 import GoogleSettings from "@/components/GoogleSettings";
+import Onboarding from "@/components/Onboarding";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
@@ -130,6 +131,8 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
+      <Onboarding userId={user.id} />
+      
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div
