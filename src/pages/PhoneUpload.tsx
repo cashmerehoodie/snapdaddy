@@ -133,12 +133,13 @@ const PhoneUpload = () => {
               />
               <Button
                 asChild
-                className="w-full h-32 gap-3"
+                className="w-full h-32 gap-3 flex-col"
                 variant="outline"
               >
                 <label htmlFor="camera-input" className="cursor-pointer">
                   <Camera className="w-8 h-8" />
-                  <span>Take Photos</span>
+                  <span className="font-semibold">Take Photos</span>
+                  <span className="text-xs text-muted-foreground">Select multiple</span>
                 </label>
               </Button>
             </label>
@@ -154,12 +155,13 @@ const PhoneUpload = () => {
               />
               <Button
                 asChild
-                className="w-full h-32 gap-3"
+                className="w-full h-32 gap-3 flex-col"
                 variant="outline"
               >
                 <label htmlFor="file-input" className="cursor-pointer">
                   <Upload className="w-8 h-8" />
-                  <span>Choose from Gallery</span>
+                  <span className="font-semibold">Choose from Gallery</span>
+                  <span className="text-xs text-muted-foreground">Select multiple</span>
                 </label>
               </Button>
             </label>
@@ -190,19 +192,41 @@ const PhoneUpload = () => {
               {selectedFiles.length} receipt{selectedFiles.length > 1 ? "s" : ""} selected
             </p>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={clearSelection}
-                className="flex-1"
-                disabled={uploading}
-              >
-                Clear All
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <label className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="add-more-input"
+                  />
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full"
+                    disabled={uploading}
+                  >
+                    <label htmlFor="add-more-input" className="cursor-pointer">
+                      <Upload className="w-4 h-4 mr-2" />
+                      Add More
+                    </label>
+                  </Button>
+                </label>
+                <Button
+                  variant="outline"
+                  onClick={clearSelection}
+                  disabled={uploading}
+                >
+                  Clear All
+                </Button>
+              </div>
               <Button
                 onClick={handleUpload}
                 disabled={uploading}
-                className="flex-1 h-12"
+                className="w-full h-12"
               >
                 {uploading ? `Uploading ${uploadedCount}/${selectedFiles.length}...` : `Upload ${selectedFiles.length} Receipt${selectedFiles.length > 1 ? "s" : ""}`}
               </Button>
