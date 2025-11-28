@@ -211,9 +211,12 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => {
+                    label={({ name, percent, emoji }) => {
                       const isMobile = window.innerWidth < 640;
-                      return isMobile ? `${(percent * 100).toFixed(0)}%` : `${name} ${(percent * 100).toFixed(0)}%`;
+                      const emojiStr = emoji || "📁";
+                      return isMobile 
+                        ? `${emojiStr} ${(percent * 100).toFixed(0)}%` 
+                        : `${emojiStr} ${name} ${(percent * 100).toFixed(0)}%`;
                     }}
                     outerRadius={window.innerWidth < 640 ? 80 : 120}
                     fill="hsl(var(--primary))"
@@ -229,7 +232,10 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                         const data = payload[0].payload;
                         return (
                           <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                            <p className="font-semibold text-foreground text-sm">{data.name}</p>
+                            <p className="font-semibold text-foreground text-sm flex items-center gap-2">
+                              <span className="text-xl">{data.emoji || "📁"}</span>
+                              <span>{data.name}</span>
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {data.count} receipt{data.count !== 1 ? 's' : ''}
                             </p>
