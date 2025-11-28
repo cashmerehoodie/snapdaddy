@@ -178,20 +178,26 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const openEditDialog = (categoryName: string) => {
     const category = categories.find((c) => c.name === categoryName) || null;
 
-    if (!category) {
-      toast.error("This category can't be edited here. Please use Manage Categories.");
-      return;
+    if (category) {
+      setEditingCategory(category);
+      setNewCategoryName(category.name);
+      setNewCategoryEmoji(category.emoji);
+    } else {
+      // No existing category mapping yet – create one prefilled with this name
+      setEditingCategory(null);
+      setNewCategoryName(categoryName);
+      setNewCategoryEmoji("📁");
     }
 
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setNewCategoryEmoji(category.emoji);
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
-    // Category creation for this user is handled in the Manage Categories view.
-    toast.error("To create a new category, please use Manage Categories.");
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryEmoji("📁");
+    setIsCreating(true);
+    setIsDialogOpen(true);
   };
 
   const resetDialog = () => {
@@ -210,21 +216,29 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       return;
     }
 
-    if (!editingCategory) {
-      toast.error("This category can't be edited here. Please use Manage Categories.");
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from("categories")
-        .update({
-          name: trimmedName,
-          emoji: newCategoryEmoji,
-        })
-        .eq("id", editingCategory.id);
+      if (editingCategory) {
+        const { error } = await supabase
+          .from("categories")
+          .update({
+            name: trimmedName,
+            emoji: newCategoryEmoji,
+          })
+          .eq("id", editingCategory.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("categories")
+          .insert({
+            user_id: userId,
+            name: trimmedName,
+            emoji: newCategoryEmoji,
+            is_default: false,
+          });
+
+        if (error) throw error;
+      }
 
       toast.success("Category updated successfully");
 
@@ -236,6 +250,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       console.error("Save category error:", error);
     }
   };
+
   if (loading) {
     return (
       <Card className="max-w-6xl mx-auto border-border/50 shadow-lg">
