@@ -114,6 +114,65 @@ serve(async (req) => {
       console.error("Error processing receipt:", processError);
     }
 
+    // Get user's Google settings and access token from their profile
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("google_sheets_id, google_drive_folder, google_access_token")
+      .eq("user_id", session.user_id)
+      .single();
+
+    const accessToken = profileData?.google_access_token;
+
+    // Upload to Google Drive and sync to Sheets if configured
+    if (accessToken && processData?.data) {
+      const fileExt = file.name.split(".").pop();
+      const driveFileName = `receipt_${processData.data.date}_${processData.data.merchant_name || 'unknown'}.${fileExt}`;
+      const folderName = profileData?.google_drive_folder || 'SnapDaddy Receipts';
+
+      // Upload to Google Drive
+      const { data: driveData, error: driveError } = await supabase.functions.invoke('google-drive-upload', {
+        body: { 
+          imageUrl: urlData.publicUrl, 
+          fileName: driveFileName,
+          accessToken,
+          folderName
+        }
+      });
+
+      let driveLink = '';
+      if (!driveError && driveData?.webViewLink) {
+        driveLink = driveData.webViewLink;
+        console.log("Uploaded to Google Drive:", driveLink);
+      } else {
+        console.error("Failed to upload to Drive:", driveError);
+      }
+
+      // Sync to Google Sheets if configured
+      if (profileData?.google_sheets_id && processData?.receipt) {
+        const receiptData = {
+          merchant_name: processData.receipt.merchant_name || 'Unknown Merchant',
+          amount: processData.receipt.amount || 0,
+          receipt_date: processData.receipt.receipt_date,
+          category: processData.receipt.category || 'Other',
+          driveLink
+        };
+
+        const { error: sheetsError } = await supabase.functions.invoke('google-sheets-sync', {
+          body: {
+            accessToken,
+            sheetsId: profileData.google_sheets_id,
+            receiptData
+          }
+        });
+
+        if (sheetsError) {
+          console.error("Failed to sync to Sheets:", sheetsError);
+        } else {
+          console.log("Synced to Google Sheets");
+        }
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

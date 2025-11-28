@@ -10,66 +10,83 @@ const PhoneUpload = () => {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [uploadedCount, setUploadedCount] = useState(0);
 
   
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...files]);
+      const urls = files.map((file) => URL.createObjectURL(file));
+      setPreviewUrls((prev) => [...prev, ...urls]);
     }
   };
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...files]);
+      const urls = files.map((file) => URL.createObjectURL(file));
+      setPreviewUrls((prev) => [...prev, ...urls]);
     }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviewUrls((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const clearSelection = () => {
-    setSelectedFile(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewUrls([]);
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !sessionId) return;
+    if (selectedFiles.length === 0 || !sessionId) return;
 
     setUploading(true);
+    setUploadedCount(0);
+
     try {
-      const formData = new FormData();
-      formData.append("file", selectedFile);
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        toast.loading(`Uploading receipt ${i + 1} of ${selectedFiles.length}...`, {
+          id: `upload-${i}`,
+        });
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/phone-upload?sessionId=${sessionId}`,
-        {
-          method: "POST",
-          body: formData,
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/phone-upload?sessionId=${sessionId}`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Upload failed");
         }
-      );
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Upload failed");
+        setUploadedCount(i + 1);
+        toast.success(`Receipt ${i + 1} uploaded!`, { id: `upload-${i}` });
       }
 
       setUploadComplete(true);
-      toast.success("Receipt uploaded successfully!");
-      
-      // Clean up preview URL
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
+      toast.success(`All ${selectedFiles.length} receipts uploaded successfully!`);
+
+      // Clean up preview URLs
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
     } catch (error) {
       console.error("Upload error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to upload");
@@ -85,7 +102,7 @@ const PhoneUpload = () => {
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-2xl font-bold mb-2">Upload Complete!</h1>
           <p className="text-muted-foreground mb-6">
-            Your receipt has been uploaded and is being processed. You can close this window now.
+            {uploadedCount} receipt{uploadedCount > 1 ? "s" : ""} uploaded and being processed. You can close this window now.
           </p>
         </Card>
       </div>
@@ -102,13 +119,14 @@ const PhoneUpload = () => {
           </p>
         </div>
 
-        {!selectedFile ? (
+        {selectedFiles.length === 0 ? (
           <div className="space-y-4">
             <label className="block">
               <input
                 type="file"
                 accept="image/*"
                 capture="environment"
+                multiple
                 onChange={handleCameraCapture}
                 className="hidden"
                 id="camera-input"
@@ -120,7 +138,7 @@ const PhoneUpload = () => {
               >
                 <label htmlFor="camera-input" className="cursor-pointer">
                   <Camera className="w-8 h-8" />
-                  <span>Take Photo</span>
+                  <span>Take Photos</span>
                 </label>
               </Button>
             </label>
@@ -129,6 +147,7 @@ const PhoneUpload = () => {
               <input
                 type="file"
                 accept="image/*"
+                multiple
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-input"
@@ -147,29 +166,47 @@ const PhoneUpload = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="relative">
-              <img
-                src={previewUrl || ""}
-                alt="Receipt preview"
-                className="w-full rounded-lg border"
-              />
-              <Button
-                variant="destructive"
-                size="icon"
-                className="absolute top-2 right-2"
-                onClick={clearSelection}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+            <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              {previewUrls.map((url, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={url}
+                    alt={`Receipt preview ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-1 right-1 h-6 w-6"
+                    onClick={() => removeFile(index)}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
-            <Button
-              onClick={handleUpload}
-              disabled={uploading}
-              className="w-full h-12"
-            >
-              {uploading ? "Uploading..." : "Upload Receipt"}
-            </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              {selectedFiles.length} receipt{selectedFiles.length > 1 ? "s" : ""} selected
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={clearSelection}
+                className="flex-1"
+                disabled={uploading}
+              >
+                Clear All
+              </Button>
+              <Button
+                onClick={handleUpload}
+                disabled={uploading}
+                className="flex-1 h-12"
+              >
+                {uploading ? `Uploading ${uploadedCount}/${selectedFiles.length}...` : `Upload ${selectedFiles.length} Receipt${selectedFiles.length > 1 ? "s" : ""}`}
+              </Button>
+            </div>
           </div>
         )}
       </Card>
