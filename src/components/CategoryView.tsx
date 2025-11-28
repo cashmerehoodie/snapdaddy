@@ -178,28 +178,20 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const openEditDialog = (categoryName: string) => {
     const category = categories.find((c) => c.name === categoryName) || null;
 
-    if (category) {
-      setEditingCategory(category);
-      setNewCategoryName(category.name);
-      setNewCategoryEmoji(category.emoji);
-      setIsCreating(false);
-    } else {
-      // No existing category mapping yet – create one prefilled with this name
-      setEditingCategory(null);
-      setNewCategoryName(categoryName);
-      setNewCategoryEmoji("📁");
-      setIsCreating(true);
+    if (!category) {
+      toast.error("This category can't be edited here. Please use Manage Categories.");
+      return;
     }
 
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCategoryEmoji(category.emoji);
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
-    setEditingCategory(null);
-    setNewCategoryName("");
-    setNewCategoryEmoji("📁");
-    setIsCreating(true);
-    setIsDialogOpen(true);
+    // Category creation for this user is handled in the Manage Categories view.
+    toast.error("To create a new category, please use Manage Categories.");
   };
 
   const resetDialog = () => {
@@ -218,31 +210,23 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       return;
     }
 
+    if (!editingCategory) {
+      toast.error("This category can't be edited here. Please use Manage Categories.");
+      return;
+    }
+
     try {
-      if (!editingCategory) {
-        const { error } = await supabase
-          .from("categories")
-          .insert({
-            user_id: userId,
-            name: trimmedName,
-            emoji: newCategoryEmoji,
-            is_default: false,
-          });
+      const { error } = await supabase
+        .from("categories")
+        .update({
+          name: trimmedName,
+          emoji: newCategoryEmoji,
+        })
+        .eq("id", editingCategory.id);
 
-        if (error) throw error;
-        toast.success("Category created successfully");
-      } else {
-        const { error } = await supabase
-          .from("categories")
-          .update({
-            name: trimmedName,
-            emoji: newCategoryEmoji,
-          })
-          .eq("id", editingCategory.id);
+      if (error) throw error;
 
-        if (error) throw error;
-        toast.success("Category updated successfully");
-      }
+      toast.success("Category updated successfully");
 
       resetDialog();
       fetchCategories();
