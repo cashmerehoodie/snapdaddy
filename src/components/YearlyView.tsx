@@ -200,7 +200,7 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
               </CardTitle>
               <CardDescription className="flex items-center gap-2">
                 {selectedYear}
-                {availableYears.length > 1 && (
+                {availableYears.length > 0 && (
                   <div className="flex gap-1 ml-4">
                     {availableYears.map((year) => (
                       <div key={year} className="relative inline-block group">
