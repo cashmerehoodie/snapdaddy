@@ -393,16 +393,16 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                           style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
                         />
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <p className="font-medium text-base truncate">{category.name}</p>
                             {categoryObj && (
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6"
+                                className="h-5 w-5 hover:bg-primary/10"
                                 onClick={() => openEditDialog(categoryObj)}
                               >
-                                <Edit2 className="w-3 h-3" />
+                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
                               </Button>
                             )}
                           </div>
