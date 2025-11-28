@@ -154,6 +154,15 @@ serve(async (req) => {
           if (!driveError && driveData?.webViewLink) {
             driveLink = driveData.webViewLink;
             console.log("Uploaded to Google Drive:", driveLink);
+            
+            // Update the receipt record with google_drive_id
+            if (driveData.fileId && processData?.receipt?.id) {
+              await supabase
+                .from("receipts")
+                .update({ google_drive_id: driveData.fileId })
+                .eq("id", processData.receipt.id);
+              console.log("Updated receipt with Google Drive ID:", driveData.fileId);
+            }
           } else {
             console.error("Failed to upload to Drive:", driveError);
           }

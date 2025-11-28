@@ -258,6 +258,15 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
           let driveLink = '';
           if (!driveError && driveData?.webViewLink) {
             driveLink = driveData.webViewLink;
+            
+            // Update the receipt record with google_drive_id
+            if (driveData.fileId && functionData?.receipt?.id) {
+              await supabase
+                .from("receipts")
+                .update({ google_drive_id: driveData.fileId })
+                .eq("id", functionData.receipt.id);
+            }
+            
             toast.success(`✅ Saved to ${driveData.folderName || folderName}`, { id: `drive-${i}` });
           } else {
             toast.error("Failed to upload to Drive", { id: `drive-${i}` });
