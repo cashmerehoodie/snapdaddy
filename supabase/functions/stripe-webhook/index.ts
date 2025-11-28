@@ -6,133 +6,114 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2025-08-27.basil",
 });
 
-const supabaseClient = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  { auth: { persistSession: false } }
-);
+const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
+  auth: { persistSession: false },
+});
 
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
-};
+const log = (msg: string, data?: any) => console.log(`[STRIPE-WEBHOOK] ${msg}`, data ? JSON.stringify(data) : "");
 
 serve(async (req) => {
   const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    return new Response("No signature", { status: 400 });
+  const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+
+  if (!signature || !webhookSecret) {
+    return new Response("Missing signature or secret", { status: 400 });
   }
+
+  let raw = await req.text();
+  let event: Stripe.Event;
 
   try {
-    const rawBody = await req.text();
-    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
-    
-    if (!webhookSecret) {
-      logStep("ERROR: No webhook secret configured");
-      return new Response("Webhook secret not configured", { status: 500 });
-    }
-
-    let event: Stripe.Event;
-    try {
-      event = await stripe.webhooks.constructEventAsync(rawBody, signature, webhookSecret);
-      logStep("Webhook signature verified successfully");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logStep("ERROR: Webhook signature verification failed", { message });
-      return new Response(JSON.stringify({ error: "Webhook signature verification failed" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    logStep("Event received", { type: event.type });
-
-    const subscription = event.data.object as Stripe.Subscription;
-    const customerId = subscription.customer as string;
-
-    // Get customer email
-    const customer = await stripe.customers.retrieve(customerId);
-    if (!customer || customer.deleted) {
-      throw new Error("Customer not found");
-    }
-    const customerEmail = (customer as Stripe.Customer).email;
-    if (!customerEmail) {
-      throw new Error("Customer email not found");
-    }
-    
-    logStep("Processing for customer", { email: customerEmail });
-
-    // Get user from email
-    const { data: userData } = await supabaseClient.auth.admin.listUsers();
-    const user = userData?.users.find(u => u.email === customerEmail);
-    if (!user) {
-      logStep("ERROR: User not found for email", { email: customerEmail });
-      return new Response("User not found", { status: 404 });
-    }
-
-    let newStatus = "inactive";
-    
-    switch (event.type) {
-      case "customer.subscription.created":
-        newStatus = subscription.status;
-        logStep("Subscription created", { status: newStatus, userId: user.id });
-        break;
-        
-      case "customer.subscription.trial_will_end":
-        newStatus = subscription.status;
-        logStep("Trial will end soon", { userId: user.id });
-        // You could send an email notification here
-        break;
-        
-      case "customer.subscription.updated":
-        newStatus = subscription.status;
-        logStep("Subscription updated", { status: newStatus, userId: user.id });
-        break;
-        
-      case "invoice.payment_succeeded":
-        newStatus = "active";
-        logStep("Payment succeeded", { userId: user.id });
-        break;
-        
-      case "invoice.payment_failed":
-        newStatus = "past_due";
-        logStep("Payment failed", { userId: user.id });
-        break;
-        
-      case "customer.subscription.deleted":
-        newStatus = "canceled";
-        logStep("Subscription canceled", { userId: user.id });
-        break;
-    }
-
-    // Update profile
-    const { error } = await supabaseClient
-      .from("profiles")
-      .update({
-        subscription_status: newStatus,
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscription.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
-
-    if (error) {
-      logStep("ERROR updating profile", { error });
-      throw error;
-    }
-
-    logStep("Profile updated successfully", { userId: user.id, newStatus });
-
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200,
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { "Content-Type": "application/json" },
-      status: 400,
-    });
+    event = await stripe.webhooks.constructEventAsync(raw, signature, webhookSecret);
+  } catch (err) {
+    log("Signature verification failed", err);
+    return new Response("Bad signature", { status: 400 });
   }
+
+  log("Received event", { type: event.type });
+
+  let subscriptionId: string | null = null;
+  let customerId: string | null = null;
+  let status = "inactive";
+
+  // 🔥 Correctly extract subscription + customer based on event type
+  switch (event.type) {
+    case "checkout.session.completed": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      subscriptionId = session.subscription as string;
+      customerId = session.customer as string;
+      status = "active";
+      break;
+    }
+
+    case "invoice.payment_succeeded": {
+      const invoice = event.data.object as Stripe.Invoice;
+      subscriptionId = invoice.subscription as string;
+      customerId = invoice.customer as string;
+      status = "active";
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      const invoice = event.data.object as Stripe.Invoice;
+      subscriptionId = invoice.subscription as string;
+      customerId = invoice.customer as string;
+      status = "past_due";
+      break;
+    }
+
+    case "customer.subscription.created":
+    case "customer.subscription.updated":
+    case "customer.subscription.deleted": {
+      const sub = event.data.object as Stripe.Subscription;
+      subscriptionId = sub.id;
+      customerId = sub.customer as string;
+      status = sub.status;
+      break;
+    }
+  }
+
+  // If we didn't get a customerId, stop
+  if (!customerId) {
+    log("No customer ID found");
+    return new Response("No customer", { status: 200 });
+  }
+
+  // Fetch Stripe customer
+  const customer = await stripe.customers.retrieve(customerId);
+  if (!customer || customer.deleted) {
+    return new Response("Customer not found", { status: 200 });
+  }
+
+  const email = (customer as Stripe.Customer).email!;
+  log("Processing customer", { email });
+
+  // Find Supabase user via email
+  const { data: users } = await supabase.auth.admin.listUsers();
+  const user = users.users.find((u) => u.email === email);
+
+  if (!user) {
+    log("User not found", { email });
+    return new Response("No user", { status: 200 });
+  }
+
+  // Update user profile
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      subscription_status: status,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id);
+
+  if (error) {
+    log("Profile update error", error);
+    return new Response("DB error", { status: 500 });
+  }
+
+  log("Profile updated", { userId: user.id, status });
+
+  return new Response("OK", { status: 200 });
 });
