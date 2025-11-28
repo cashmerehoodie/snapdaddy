@@ -131,16 +131,16 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
 
   const handleAutoSetup = async () => {
     setAutoSetupLoading(true);
+    const toastId = toast.loading("Creating your Google Sheet and Drive folder...");
+    
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.provider_token;
 
       if (!accessToken) {
-        toast.error("Please connect Google first");
+        toast.error("Please connect Google first", { id: toastId });
         return;
       }
-
-      toast.loading("Creating your Google Sheet and Drive folder...");
 
       const { data, error } = await supabase.functions.invoke('setup-google-storage', {
         body: {
@@ -150,7 +150,14 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Setup error:", error);
+        throw new Error(error.message || "Failed to create Google Drive folder and Sheet");
+      }
+
+      if (!data || !data.spreadsheetId || !data.folderId) {
+        throw new Error("Setup completed but didn't return expected data");
+      }
 
       setSheetsId(data.spreadsheetId);
       setDriveFolder(data.folderName);
@@ -159,19 +166,27 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
       toast.success(
         <div>
           <p className="font-semibold">Setup complete! 🎉</p>
+          <p className="text-xs mt-1">Created Drive folder and Google Sheet</p>
           <a 
             href={data.spreadsheetUrl} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-xs underline"
+            className="text-xs underline block mt-1"
           >
             Open your new spreadsheet
           </a>
-        </div>
+        </div>,
+        { id: toastId, duration: 5000 }
       );
     } catch (error: any) {
-      toast.error(error.message || "Failed to auto-setup");
       console.error("Auto-setup error:", error);
+      toast.error(
+        <div>
+          <p className="font-semibold">Setup failed</p>
+          <p className="text-xs mt-1">{error.message || "Failed to auto-setup Google integration"}</p>
+        </div>,
+        { id: toastId }
+      );
     } finally {
       setAutoSetupLoading(false);
     }
