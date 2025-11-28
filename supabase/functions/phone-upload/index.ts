@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
+// Edge runtime helper for background tasks
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -99,84 +104,99 @@ serve(async (req) => {
       throw updateError;
     }
 
-    // Process the receipt with AI
-    const { data: processData, error: processError } = await supabase.functions.invoke(
-      "process-receipt",
-      {
-        body: {
-          imageUrl: urlData.publicUrl,
-          userId: session.user_id,
-        },
-      }
-    );
-
-    if (processError) {
-      console.error("Error processing receipt:", processError);
-    }
-
-    // Get user's Google settings and provider token from their profile
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("google_sheets_id, google_drive_folder, google_provider_token")
-      .eq("user_id", session.user_id)
-      .single();
-
-    const accessToken = profileData?.google_provider_token;
-
-    // Upload to Google Drive and sync to Sheets if configured
-    if (accessToken && processData?.data) {
-      const fileExt = file.name.split(".").pop();
-      const driveFileName = `receipt_${processData.data.date}_${processData.data.merchant_name || 'unknown'}.${fileExt}`;
-      const folderName = profileData?.google_drive_folder || 'SnapDaddy Receipts';
-
-      // Upload to Google Drive
-      console.log("Uploading to Google Drive...");
-      const { data: driveData, error: driveError } = await supabase.functions.invoke('google-drive-upload', {
-        body: { 
-          imageUrl: urlData.publicUrl, 
-          fileName: driveFileName,
-          accessToken,
-          folderName,
-          userId: session.user_id
-        }
-      });
-
-      let driveLink = '';
-      if (!driveError && driveData?.webViewLink) {
-        driveLink = driveData.webViewLink;
-        console.log("Uploaded to Google Drive:", driveLink);
-      } else {
-        console.error("Failed to upload to Drive:", driveError);
-      }
-
-      // Sync to Google Sheets if configured
-      if (profileData?.google_sheets_id && processData?.receipt) {
-        console.log("Syncing to Google Sheets...");
-        const receiptData = {
-          merchant_name: processData.receipt.merchant_name || 'Unknown Merchant',
-          amount: processData.receipt.amount || 0,
-          receipt_date: processData.receipt.receipt_date,
-          category: processData.receipt.category || 'Other',
-          driveLink
-        };
-
-        const { error: sheetsError } = await supabase.functions.invoke('google-sheets-sync', {
-          body: {
-            accessToken,
-            sheetsId: profileData.google_sheets_id,
-            receiptData,
-            userId: session.user_id
+    // Kick off background processing (AI + Google sync) so the upload response stays fast
+    const processAndSync = async () => {
+      try {
+        // Process the receipt with AI
+        const { data: processData, error: processError } = await supabase.functions.invoke(
+          "process-receipt",
+          {
+            body: {
+              imageUrl: urlData.publicUrl,
+              userId: session.user_id,
+            },
           }
-        });
+        );
 
-        if (sheetsError) {
-          console.error("Failed to sync to Sheets:", sheetsError);
-        } else {
-          console.log("Synced to Google Sheets");
+        if (processError) {
+          console.error("Error processing receipt:", processError);
+          return;
         }
+
+        // Get user's Google settings and provider token from their profile
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("google_sheets_id, google_drive_folder, google_provider_token")
+          .eq("user_id", session.user_id)
+          .single();
+
+        const accessToken = profileData?.google_provider_token;
+
+        // Upload to Google Drive and sync to Sheets if configured
+        if (accessToken && processData?.data) {
+          const fileExt = file.name.split(".").pop();
+          const driveFileName = `receipt_${processData.data.date}_${processData.data.merchant_name || "unknown"}.${fileExt}`;
+          const folderName = profileData?.google_drive_folder || "SnapDaddy Receipts";
+
+          // Upload to Google Drive
+          console.log("Uploading to Google Drive...");
+          const { data: driveData, error: driveError } = await supabase.functions.invoke("google-drive-upload", {
+            body: {
+              imageUrl: urlData.publicUrl,
+              fileName: driveFileName,
+              accessToken,
+              folderName,
+              userId: session.user_id,
+            },
+          });
+
+          let driveLink = "";
+          if (!driveError && driveData?.webViewLink) {
+            driveLink = driveData.webViewLink;
+            console.log("Uploaded to Google Drive:", driveLink);
+          } else {
+            console.error("Failed to upload to Drive:", driveError);
+          }
+
+          // Sync to Google Sheets if configured
+          if (profileData?.google_sheets_id && processData?.receipt) {
+            console.log("Syncing to Google Sheets...");
+            const receiptData = {
+              merchant_name: processData.receipt.merchant_name || "Unknown Merchant",
+              amount: processData.receipt.amount || 0,
+              receipt_date: processData.receipt.receipt_date,
+              category: processData.receipt.category || "Other",
+              driveLink,
+            };
+
+            const { error: sheetsError } = await supabase.functions.invoke("google-sheets-sync", {
+              body: {
+                accessToken,
+                sheetsId: profileData.google_sheets_id,
+                receiptData,
+                userId: session.user_id,
+              },
+            });
+
+            if (sheetsError) {
+              console.error("Failed to sync to Sheets:", sheetsError);
+            } else {
+              console.log("Synced to Google Sheets");
+            }
+          }
+        } else if (!accessToken) {
+          console.log("No Google provider token found, skipping Google integration");
+        }
+      } catch (bgError) {
+        console.error("Background processing error:", bgError);
       }
-    } else if (!accessToken) {
-      console.log("No Google provider token found, skipping Google integration");
+    };
+
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(processAndSync());
+    } else {
+      // Fallback: run without blocking the response
+      void processAndSync();
     }
 
     return new Response(
