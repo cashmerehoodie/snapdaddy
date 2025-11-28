@@ -108,7 +108,9 @@ serve(async (req) => {
     const subscription = subscriptions.data[0];
     const status = subscription.status;
     const isActive = status === "active" || status === "trialing";
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    const subscriptionEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString()
+      : null;
     
     logStep("Subscription found", { 
       subscriptionId: subscription.id, 
@@ -126,11 +128,15 @@ serve(async (req) => {
       })
       .eq("user_id", user.id);
 
+    const trialEnd = subscription.trial_end 
+      ? new Date(subscription.trial_end * 1000).toISOString()
+      : null;
+
     return new Response(JSON.stringify({
       subscribed: isActive,
       subscription_status: status,
       subscription_end: subscriptionEnd,
-      trial_end: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null
+      trial_end: trialEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
