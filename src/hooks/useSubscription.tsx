@@ -28,6 +28,9 @@ export const useSubscription = (user: User | null) => {
       return;
     }
 
+    // When we do have a user, always go into a loading state before checks
+    setStatus((prev) => ({ ...prev, loading: true }));
+
     const fallbackFromProfile = async () => {
       try {
         const { data: profile, error: profileError } = await supabase
@@ -52,7 +55,7 @@ export const useSubscription = (user: User | null) => {
 
         const isSubscribed =
           profile.has_free_access ||
-          ['active', 'trialing'].includes(profile.subscription_status || '');
+          ["active", "trialing"].includes(profile.subscription_status || "");
 
         setStatus({
           subscribed: !!isSubscribed,
