@@ -72,6 +72,34 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     }
   }, [selectedMonth]);
 
+  // Realtime subscription for receipt deletions
+  useEffect(() => {
+    const channel = supabase
+      .channel('monthly-view-receipts')
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'receipts',
+          filter: `user_id=eq.${userId}`
+        },
+        () => {
+          // Refresh data when receipts are deleted
+          fetchAvailableYears();
+          fetchYearlyData();
+          if (selectedMonth !== null) {
+            fetchMonthReceipts();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, selectedMonth]);
+
   const fetchAvailableYears = async () => {
     try {
       const { data, error } = await supabase
