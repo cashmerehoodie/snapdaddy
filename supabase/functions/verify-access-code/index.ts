@@ -41,6 +41,24 @@ serve(async (req) => {
     }
     logStep("Verifying code", { code });
 
+    // First check if user already has free access with this code
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("has_free_access, free_access_code")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile?.has_free_access && profile?.free_access_code === code.trim().toUpperCase()) {
+      logStep("User already has access with this code");
+      return new Response(JSON.stringify({ 
+        valid: true,
+        message: "You already have access with this code!" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     // Check if code exists and is active
     const { data: vipCode, error: codeError } = await supabaseClient
       .from("vip_codes")
@@ -51,7 +69,7 @@ serve(async (req) => {
       .single();
 
     if (codeError || !vipCode) {
-      logStep("Invalid code", { code });
+      logStep("Invalid code - either doesn't exist, inactive, or already used by someone else");
       return new Response(JSON.stringify({ 
         valid: false, 
         message: "Invalid or already used access code" 

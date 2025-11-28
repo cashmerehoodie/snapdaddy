@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { KeyRound, Loader2 } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const AccessCode = () => {
   const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+  const { subscribed, has_free_access, loading } = useSubscription(user);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+  }, []);
+
+  // Redirect to dashboard if user already has access
+  useEffect(() => {
+    if (!loading && (subscribed || has_free_access)) {
+      navigate("/dashboard");
+    }
+  }, [loading, subscribed, has_free_access, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +54,7 @@ const AccessCode = () => {
 
       if (data.valid) {
         toast.success(data.message);
+        // Trigger subscription refresh before navigating
         navigate("/dashboard");
       } else {
         toast.error(data.message);
@@ -49,6 +66,18 @@ const AccessCode = () => {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking subscription status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
+        <div className="animate-pulse flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
