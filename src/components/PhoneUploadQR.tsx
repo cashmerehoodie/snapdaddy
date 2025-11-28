@@ -117,8 +117,11 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
 
       if (error) throw error;
 
-      // Construct the upload URL using the current app origin
+      // Construct the upload URL using current origin
       const uploadUrl = `${window.location.origin}/upload/${data.sessionId}`;
+      
+      console.log('Generated QR code URL:', uploadUrl);
+      console.log('Session ID:', data.sessionId);
       
       setUploadUrl(uploadUrl);
       setSessionId(data.sessionId);
