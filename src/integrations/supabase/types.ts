@@ -59,6 +59,10 @@ export type Database = {
           google_sheets_id: string | null
           has_free_access: boolean | null
           id: string
+          microsoft_access_token: string | null
+          microsoft_excel_workbook_id: string | null
+          microsoft_onedrive_folder_path: string | null
+          microsoft_refresh_token: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           subscription_status: string | null
@@ -77,6 +81,10 @@ export type Database = {
           google_sheets_id?: string | null
           has_free_access?: boolean | null
           id?: string
+          microsoft_access_token?: string | null
+          microsoft_excel_workbook_id?: string | null
+          microsoft_onedrive_folder_path?: string | null
+          microsoft_refresh_token?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
@@ -95,6 +103,10 @@ export type Database = {
           google_sheets_id?: string | null
           has_free_access?: boolean | null
           id?: string
+          microsoft_access_token?: string | null
+          microsoft_excel_workbook_id?: string | null
+          microsoft_onedrive_folder_path?: string | null
+          microsoft_refresh_token?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           subscription_status?: string | null
