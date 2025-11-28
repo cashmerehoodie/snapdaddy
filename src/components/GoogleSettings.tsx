@@ -32,10 +32,22 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   useEffect(() => {
     checkGoogleConnection();
     fetchSettings();
+    
     // Load saved setup mode from localStorage
     const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
     if (savedMode && (savedMode === 'choice' || savedMode === 'manual')) {
       setSetupMode(savedMode as 'choice' | 'manual');
+    }
+    
+    // Check if we just came back from Google OAuth
+    const wasConnecting = localStorage.getItem(`google_connecting_${userId}`);
+    if (wasConnecting === "true") {
+      localStorage.removeItem(`google_connecting_${userId}`);
+      // Force a recheck after a short delay to ensure token is saved
+      setTimeout(() => {
+        checkGoogleConnection();
+        fetchSettings();
+      }, 1500);
     }
   }, [userId]);
 
@@ -55,27 +67,48 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   };
 
   const checkGoogleConnection = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const hasToken = !!session?.provider_token;
-    setIsConnected(hasToken);
+    // First check if we have a saved token in the database
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("google_provider_token, google_sheets_id, google_drive_folder")
+      .eq("user_id", userId)
+      .single();
     
-    // Save the provider token to profiles for phone upload use
-    if (hasToken && session.provider_token) {
+    // If we have a saved token in the database, consider connected
+    const hasSavedToken = !!profile?.google_provider_token;
+    
+    // Also check current session for a fresh token
+    const { data: { session } } = await supabase.auth.getSession();
+    const hasSessionToken = !!session?.provider_token;
+    
+    // Connected if we have either a saved token OR a fresh session token
+    setIsConnected(hasSavedToken || hasSessionToken);
+    
+    // Update the token if we have a fresh one from the session
+    if (hasSessionToken && session.provider_token) {
       await supabase
         .from("profiles")
         .update({ google_provider_token: session.provider_token })
         .eq("user_id", userId);
     }
     
+    // Load saved sheets ID and folder name from database
+    if (profile?.google_sheets_id) {
+      setSheetsId(profile.google_sheets_id);
+    }
+    if (profile?.google_drive_folder) {
+      setDriveFolder(profile.google_drive_folder);
+    }
+    
     // Check if there's a saved mode preference
     const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
     
     // If connected and no sheets configured yet, show choice (unless user already picked)
-    if (hasToken && !sheetsId && !savedMode) {
+    if ((hasSavedToken || hasSessionToken) && !profile?.google_sheets_id && !savedMode) {
       const newMode = 'choice';
       setSetupMode(newMode);
       localStorage.setItem(`google_setup_mode_${userId}`, newMode);
-    } else if (sheetsId) {
+    } else if (profile?.google_sheets_id) {
       const newMode = 'manual';
       setSetupMode(newMode); // Already configured
       localStorage.setItem(`google_setup_mode_${userId}`, newMode);
@@ -102,17 +135,39 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     try {
       const cleanSheetId = extractSheetId(sheetsId);
       
+      // Get current provider token to ensure it's preserved
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("google_provider_token")
+        .eq("user_id", userId)
+        .single();
+      
+      const updateData: any = {
+        user_id: userId,
+        google_sheets_id: cleanSheetId,
+        google_drive_folder: driveFolder || 'SnapDaddy Receipts'
+      };
+      
+      // Preserve existing token or use fresh one from session
+      if (session?.provider_token) {
+        updateData.google_provider_token = session.provider_token;
+      } else if (currentProfile?.google_provider_token) {
+        updateData.google_provider_token = currentProfile.google_provider_token;
+      }
+      
       const { error } = await supabase
         .from("profiles")
-        .upsert({ 
-          user_id: userId,
-          google_sheets_id: cleanSheetId,
-          google_drive_folder: driveFolder || 'SnapDaddy Receipts'
-        }, {
+        .upsert(updateData, {
           onConflict: 'user_id'
         });
 
       if (error) throw error;
+
+      // Save settings to localStorage as backup
+      localStorage.setItem(`google_sheets_id_${userId}`, cleanSheetId);
+      localStorage.setItem(`google_drive_folder_${userId}`, driveFolder || 'SnapDaddy Receipts');
+      localStorage.setItem(`google_settings_saved_${userId}`, Date.now().toString());
 
       setSheetsId(cleanSheetId); // Update state with clean ID
       toast.success("Settings saved!");
@@ -125,15 +180,29 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   };
 
   const handleGoogleConnect = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
-        redirectTo: window.location.href,
-      },
-    });
+    try {
+      // Save a flag indicating we're connecting to Google
+      localStorage.setItem(`google_connecting_${userId}`, "true");
+      localStorage.setItem(`google_connecting_timestamp_${userId}`, Date.now().toString());
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+          redirectTo: window.location.origin + "/dashboard",
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
 
-    if (error) {
+      if (error) {
+        localStorage.removeItem(`google_connecting_${userId}`);
+        toast.error(error.message || "Failed to connect Google");
+      }
+    } catch (error: any) {
+      localStorage.removeItem(`google_connecting_${userId}`);
       toast.error(error.message || "Failed to connect Google");
     }
   };
