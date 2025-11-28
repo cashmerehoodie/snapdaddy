@@ -31,6 +31,8 @@ export const useSubscription = (user: User | null) => {
     try {
       const { data, error } = await supabase.functions.invoke("check-subscription");
 
+      console.log("useSubscription: check-subscription response:", { data, error });
+
       if (error) {
         console.error("Error checking subscription:", error);
         setStatus({
@@ -41,6 +43,7 @@ export const useSubscription = (user: User | null) => {
         return;
       }
 
+      console.log("useSubscription: Setting status to:", { ...data, loading: false });
       setStatus({
         ...data,
         loading: false,

@@ -41,10 +41,11 @@ const Subscribe = () => {
 
   useEffect(() => {
     if (!subLoading && subscribed) {
-      // User has access, redirect to dashboard
-      navigate("/dashboard", { replace: true });
+      // User has active subscription or VIP access, force redirect
+      console.log("Redirecting to dashboard - subscribed:", subscribed);
+      window.location.href = "/dashboard";
     }
-  }, [subscribed, subLoading, navigate]);
+  }, [subscribed, subLoading]);
 
   const handleSubscribe = async () => {
     if (!user) {
