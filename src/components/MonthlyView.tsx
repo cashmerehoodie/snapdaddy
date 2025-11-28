@@ -369,7 +369,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                   Click on any month to view receipts
                 </CardDescription>
               </div>
-              {availableYears.length > 1 && (
+              {availableYears.length > 0 && (
                 <div className="flex gap-2">
                   {availableYears.map((year) => (
                     <div key={year} className="relative inline-block group">
