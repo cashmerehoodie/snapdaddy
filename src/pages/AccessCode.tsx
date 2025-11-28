@@ -13,7 +13,7 @@ const AccessCode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
-  const { subscribed, has_free_access, loading } = useSubscription(user);
+  const { subscribed, has_free_access, loading, refresh } = useSubscription(user);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -54,8 +54,9 @@ const AccessCode = () => {
 
       if (data.valid) {
         toast.success(data.message);
-        // Trigger subscription refresh before navigating
-        navigate("/dashboard");
+        // Refresh subscription status and redirect
+        await refresh();
+        navigate("/dashboard", { replace: true });
       } else {
         toast.error(data.message);
       }
