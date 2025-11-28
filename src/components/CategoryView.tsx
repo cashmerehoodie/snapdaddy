@@ -218,15 +218,35 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       return;
     }
 
-    const duplicate = categories.find((cat) => {
-      if (editingCategory) {
-        return cat.id !== editingCategory.id && cat.name === trimmedName;
-      }
-      return cat.name === trimmedName;
-    });
+    const duplicate = categories.find((cat) => cat.name === trimmedName);
 
     try {
-      if (isCreating) {
+      // If we're editing and another category already has this name,
+      // treat this as an override: keep the existing row and remove the one we edited.
+      if (editingCategory && duplicate && duplicate.id !== editingCategory.id) {
+        const { error: updateExistingError } = await supabase
+          .from("categories")
+          .update({ emoji: newCategoryEmoji })
+          .eq("id", duplicate.id);
+
+        if (updateExistingError) throw updateExistingError;
+
+        const { error: deleteEditedError } = await supabase
+          .from("categories")
+          .delete()
+          .eq("id", editingCategory.id);
+
+        if (deleteEditedError) throw deleteEditedError;
+
+        toast.success("Category updated successfully");
+        resetDialog();
+        fetchCategories();
+        fetchCategoryData();
+        return;
+      }
+
+      // Normal create / update paths
+      if (!editingCategory) {
         const { error } = await supabase
           .from("categories")
           .insert({
@@ -238,7 +258,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
 
         if (error) throw error;
         toast.success("Category created successfully");
-      } else if (editingCategory) {
+      } else {
         const { error } = await supabase
           .from("categories")
           .update({
@@ -256,7 +276,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       fetchCategoryData();
     } catch (error: any) {
       if (error?.code === "23505") {
-        toast.error("That category name is already in use. Please choose a different name.");
+        toast.error("We couldn't update that category because of a duplicate name. Please try again.");
       } else {
         toast.error(error.message || "Failed to save category");
       }
