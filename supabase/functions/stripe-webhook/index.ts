@@ -24,7 +24,7 @@ serve(async (req) => {
   }
 
   try {
-    const body = await req.text();
+    const rawBody = await req.text();
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     
     if (!webhookSecret) {
@@ -32,7 +32,19 @@ serve(async (req) => {
       return new Response("Webhook secret not configured", { status: 500 });
     }
 
-    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    let event: Stripe.Event;
+    try {
+      event = await stripe.webhooks.constructEventAsync(rawBody, signature, webhookSecret);
+      logStep("Webhook signature verified successfully");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logStep("ERROR: Webhook signature verification failed", { message });
+      return new Response(JSON.stringify({ error: "Webhook signature verification failed" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     logStep("Event received", { type: event.type });
 
     const subscription = event.data.object as Stripe.Subscription;
