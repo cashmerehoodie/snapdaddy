@@ -9,6 +9,7 @@ interface SubscriptionStatus {
   subscription_end?: string;
   trial_end?: string;
   loading: boolean;
+  checkedForUserId: string | null;
 }
 
 export const useSubscription = (user: User | null) => {
@@ -16,7 +17,12 @@ export const useSubscription = (user: User | null) => {
     subscribed: false,
     subscription_status: "inactive",
     loading: true,
+    checkedForUserId: null,
   });
+
+  // Compute actual loading state - we're loading if status.loading is true
+  // OR if we have a user but haven't checked for THIS user yet
+  const isActuallyLoading = status.loading || (user?.id != null && status.checkedForUserId !== user.id);
 
   const checkSubscription = async () => {
     if (!user) {
@@ -24,6 +30,7 @@ export const useSubscription = (user: User | null) => {
         subscribed: false,
         subscription_status: "inactive",
         loading: false,
+        checkedForUserId: null,
       });
       return;
     }
@@ -49,6 +56,7 @@ export const useSubscription = (user: User | null) => {
             subscribed: false,
             subscription_status: "inactive",
             loading: false,
+            checkedForUserId: user.id,
           });
           return;
         }
@@ -62,6 +70,7 @@ export const useSubscription = (user: User | null) => {
           subscription_status: profile.subscription_status || "inactive",
           has_free_access: !!profile.has_free_access,
           loading: false,
+          checkedForUserId: user.id,
         });
       } catch (profileErr) {
         console.error("Error in fallback profile check:", profileErr);
@@ -69,6 +78,7 @@ export const useSubscription = (user: User | null) => {
           subscribed: false,
           subscription_status: "inactive",
           loading: false,
+          checkedForUserId: user.id,
         });
       }
     };
@@ -88,6 +98,7 @@ export const useSubscription = (user: User | null) => {
       setStatus({
         ...data,
         loading: false,
+        checkedForUserId: user.id,
       });
     } catch (error) {
       console.error("Error checking subscription via function, using fallback:", error);
@@ -98,5 +109,5 @@ export const useSubscription = (user: User | null) => {
     checkSubscription();
   }, [user?.id]); // Only re-check when user ID changes, not the whole user object
 
-  return { ...status, refresh: checkSubscription };
+  return { ...status, loading: isActuallyLoading, refresh: checkSubscription };
 };
