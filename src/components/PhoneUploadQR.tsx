@@ -117,7 +117,10 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
 
       if (error) throw error;
 
-      setUploadUrl(data.uploadUrl);
+      // Construct the upload URL using the current app origin
+      const uploadUrl = `${window.location.origin}/upload/${data.sessionId}`;
+      
+      setUploadUrl(uploadUrl);
       setSessionId(data.sessionId);
       setExpiresAt(new Date(data.expiresAt));
       toast.success("QR code generated!");
