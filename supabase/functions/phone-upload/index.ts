@@ -136,7 +136,8 @@ serve(async (req) => {
           imageUrl: urlData.publicUrl, 
           fileName: driveFileName,
           accessToken,
-          folderName
+          folderName,
+          userId: session.user_id
         }
       });
 
@@ -163,7 +164,8 @@ serve(async (req) => {
           body: {
             accessToken,
             sheetsId: profileData.google_sheets_id,
-            receiptData
+            receiptData,
+            userId: session.user_id
           }
         });
 

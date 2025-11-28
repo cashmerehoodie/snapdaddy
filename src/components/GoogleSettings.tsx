@@ -70,7 +70,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     // First check if we have a saved token in the database
     const { data: profile } = await supabase
       .from("profiles")
-      .select("google_provider_token, google_sheets_id, google_drive_folder")
+      .select("google_provider_token, google_refresh_token, google_sheets_id, google_drive_folder")
       .eq("user_id", userId)
       .single();
     
@@ -84,11 +84,20 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     // Connected if we have either a saved token OR a fresh session token
     setIsConnected(hasSavedToken || hasSessionToken);
     
-    // Update the token if we have a fresh one from the session
+    // Update both access and refresh tokens if we have fresh ones from the session
     if (hasSessionToken && session.provider_token) {
+      const updateData: any = { 
+        google_provider_token: session.provider_token 
+      };
+      
+      // Store refresh token for long-term access
+      if (session.provider_refresh_token) {
+        updateData.google_refresh_token = session.provider_refresh_token;
+      }
+      
       await supabase
         .from("profiles")
-        .update({ google_provider_token: session.provider_token })
+        .update(updateData)
         .eq("user_id", userId);
     }
     
@@ -135,11 +144,11 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     try {
       const cleanSheetId = extractSheetId(sheetsId);
       
-      // Get current provider token to ensure it's preserved
+      // Get current provider tokens to ensure they're preserved
       const { data: { session } } = await supabase.auth.getSession();
       const { data: currentProfile } = await supabase
         .from("profiles")
-        .select("google_provider_token")
+        .select("google_provider_token, google_refresh_token")
         .eq("user_id", userId)
         .single();
       
@@ -149,11 +158,17 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
         google_drive_folder: driveFolder || 'SnapDaddy Receipts'
       };
       
-      // Preserve existing token or use fresh one from session
+      // Preserve existing tokens or use fresh ones from session
       if (session?.provider_token) {
         updateData.google_provider_token = session.provider_token;
+        if (session?.provider_refresh_token) {
+          updateData.google_refresh_token = session.provider_refresh_token;
+        }
       } else if (currentProfile?.google_provider_token) {
         updateData.google_provider_token = currentProfile.google_provider_token;
+        if (currentProfile?.google_refresh_token) {
+          updateData.google_refresh_token = currentProfile.google_refresh_token;
+        }
       }
       
       const { error } = await supabase
