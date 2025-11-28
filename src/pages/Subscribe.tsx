@@ -5,26 +5,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Check, Loader2, Crown, Sparkles } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
 
 const Subscribe = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [checkingAccess, setCheckingAccess] = useState(true);
   const navigate = useNavigate();
-  const { subscribed, has_free_access, loading } = useSubscription(user);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-  }, []);
+    const checkAccess = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
 
-  // Redirect to dashboard if user already has access
-  useEffect(() => {
-    if (!loading && (subscribed || has_free_access)) {
-      navigate("/dashboard");
-    }
-  }, [loading, subscribed, has_free_access, navigate]);
+      if (!session) {
+        // Not logged in, just stop checking and show subscribe page
+        setCheckingAccess(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("has_free_access, subscription_status")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const hasAccess = profile?.has_free_access || profile?.subscription_status === "active" || profile?.subscription_status === "trialing";
+
+      if (hasAccess) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        setCheckingAccess(false);
+      }
+    };
+
+    checkAccess();
+  }, [navigate]);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -62,13 +75,13 @@ const Subscribe = () => {
     "Priority support",
   ];
 
-  // Show loading while checking subscription status
-  if (loading) {
+  // Show loading while checking access
+  if (checkingAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
         <div className="animate-pulse flex items-center gap-3">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-muted-foreground">Checking access...</p>
+          <p className="text-muted-foreground">Checking your access...</p>
         </div>
       </div>
     );
