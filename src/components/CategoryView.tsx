@@ -211,8 +211,23 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   };
 
   const handleSaveCategory = async () => {
-    if (!newCategoryName.trim()) {
+    const trimmedName = newCategoryName.trim();
+
+    if (!trimmedName) {
       toast.error("Category name cannot be empty");
+      return;
+    }
+
+    // Prevent duplicate category names for this user to avoid unique constraint errors
+    const duplicate = categories.find((cat) => {
+      if (editingCategory) {
+        return cat.id !== editingCategory.id && cat.name === trimmedName;
+      }
+      return cat.name === trimmedName;
+    });
+
+    if (duplicate) {
+      toast.error("You already have a category with this name. Please choose another name.");
       return;
     }
 
@@ -222,9 +237,9 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
           .from("categories")
           .insert({
             user_id: userId,
-            name: newCategoryName.trim(),
+            name: trimmedName,
             emoji: newCategoryEmoji,
-            is_default: false
+            is_default: false,
           });
 
         if (error) throw error;
@@ -233,8 +248,8 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
         const { error } = await supabase
           .from("categories")
           .update({
-            name: newCategoryName.trim(),
-            emoji: newCategoryEmoji
+            name: trimmedName,
+            emoji: newCategoryEmoji,
           })
           .eq("id", editingCategory.id);
 
@@ -246,11 +261,14 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       fetchCategories();
       fetchCategoryData();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save category");
+      if (error?.code === "23505") {
+        toast.error("That category name is already in use. Please choose a different name.");
+      } else {
+        toast.error(error.message || "Failed to save category");
+      }
       console.error("Save category error:", error);
     }
   };
-
   if (loading) {
     return (
       <Card className="max-w-6xl mx-auto border-border/50 shadow-lg">
