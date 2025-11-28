@@ -59,14 +59,11 @@ serve(async (req) => {
 
     console.log("Upload session created:", session);
 
-    // Return session data including the upload URL
-    const uploadUrl = `${new URL(req.url).origin.replace('functions', 'lovableproject')}/upload/${sessionId}`;
-
+    // Return session data - let the client construct the URL
     return new Response(
       JSON.stringify({
         success: true,
         sessionId,
-        uploadUrl,
         expiresAt: expiresAt.toISOString(),
       }),
       {
