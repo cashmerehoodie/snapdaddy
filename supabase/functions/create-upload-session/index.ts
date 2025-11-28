@@ -36,9 +36,9 @@ serve(async (req) => {
     // Generate unique session ID
     const sessionId = crypto.randomUUID();
     
-    // Set expiry to 5 minutes from now
+    // Set expiry to 30 minutes from now
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30);
 
     // Create session in database
     const { data: session, error: insertError } = await supabase
