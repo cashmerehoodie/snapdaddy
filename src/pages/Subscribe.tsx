@@ -13,25 +13,38 @@ const Subscribe = () => {
 
   useEffect(() => {
     const checkAccess = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) {
-        // Not logged in, just stop checking and show subscribe page
-        setCheckingAccess(false);
-        return;
-      }
+        if (!session) {
+          // Not logged in, just stop checking and show subscribe page
+          setCheckingAccess(false);
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("has_free_access, subscription_status")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("has_free_access, subscription_status")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
 
-      const hasAccess = profile?.has_free_access || profile?.subscription_status === "active" || profile?.subscription_status === "trialing";
+        if (error) {
+          console.error("Error loading profile for subscribe page:", error);
+          setCheckingAccess(false);
+          return;
+        }
 
-      if (hasAccess) {
-        navigate("/dashboard", { replace: true });
-      } else {
+        const hasAccess = profile?.has_free_access ||
+          profile?.subscription_status === "active" ||
+          profile?.subscription_status === "trialing";
+
+        if (hasAccess) {
+          navigate("/dashboard", { replace: true });
+        } else {
+          setCheckingAccess(false);
+        }
+      } catch (err) {
+        console.error("Unexpected error checking access on subscribe page:", err);
         setCheckingAccess(false);
       }
     };
