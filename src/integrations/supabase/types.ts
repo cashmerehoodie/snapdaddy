@@ -19,6 +19,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           google_drive_folder: string | null
+          google_provider_token: string | null
           google_sheets_id: string | null
           id: string
           updated_at: string
@@ -29,6 +30,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           google_drive_folder?: string | null
+          google_provider_token?: string | null
           google_sheets_id?: string | null
           id?: string
           updated_at?: string
@@ -39,6 +41,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           google_drive_folder?: string | null
+          google_provider_token?: string | null
           google_sheets_id?: string | null
           id?: string
           updated_at?: string
