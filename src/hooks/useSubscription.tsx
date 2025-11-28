@@ -28,18 +28,57 @@ export const useSubscription = (user: User | null) => {
       return;
     }
 
-    try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+    const fallbackFromProfile = async () => {
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("has_free_access, subscription_status")
+          .eq("user_id", user.id)
+          .single();
 
-      console.log("useSubscription: check-subscription response:", { data, error });
+        console.log("useSubscription: fallback profile response:", {
+          profile,
+          profileError,
+        });
 
-      if (error) {
-        console.error("Error checking subscription:", error);
+        if (profileError || !profile) {
+          setStatus({
+            subscribed: false,
+            subscription_status: "inactive",
+            loading: false,
+          });
+          return;
+        }
+
+        const isSubscribed =
+          profile.has_free_access ||
+          profile.subscription_status === "active" ||
+          profile.subscription_status === "trialing";
+
+        setStatus({
+          subscribed: !!isSubscribed,
+          subscription_status: profile.subscription_status || "inactive",
+          has_free_access: !!profile.has_free_access,
+          loading: false,
+        });
+      } catch (profileErr) {
+        console.error("Error in fallback profile check:", profileErr);
         setStatus({
           subscribed: false,
           subscription_status: "inactive",
           loading: false,
         });
+      }
+    };
+
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+
+      console.log("useSubscription: check-subscription response:", { data, error });
+
+      if (error || !data) {
+        console.error("Error checking subscription via function, using fallback:", error);
+        await fallbackFromProfile();
         return;
       }
 
@@ -49,15 +88,10 @@ export const useSubscription = (user: User | null) => {
         loading: false,
       });
     } catch (error) {
-      console.error("Error checking subscription:", error);
-      setStatus({
-        subscribed: false,
-        subscription_status: "inactive",
-        loading: false,
-      });
+      console.error("Error checking subscription via function, using fallback:", error);
+      await fallbackFromProfile();
     }
   };
-
   useEffect(() => {
     checkSubscription();
 
