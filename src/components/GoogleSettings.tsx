@@ -59,6 +59,14 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     const hasToken = !!session?.provider_token;
     setIsConnected(hasToken);
     
+    // Save the provider token to profiles for phone upload use
+    if (hasToken && session.provider_token) {
+      await supabase
+        .from("profiles")
+        .update({ google_provider_token: session.provider_token })
+        .eq("user_id", userId);
+    }
+    
     // Check if there's a saved mode preference
     const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
     
