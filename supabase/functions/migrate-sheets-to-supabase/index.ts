@@ -116,12 +116,42 @@ serve(async (req) => {
               amountStr.toString().replace(/[£$€,]/g, "").trim()
             ) || 0;
 
-            // Parse date to YYYY-MM-DD format
+            // Parse date to YYYY-MM-DD format, assuming DD/MM/YYYY when using slashes
             let receiptDate = new Date().toISOString().split("T")[0];
             if (date) {
               try {
-                const parsedDate = new Date(date);
-                if (!isNaN(parsedDate.getTime())) {
+                let parsedDate: Date | null = null;
+
+                if (typeof date === "string") {
+                  const trimmed = date.trim();
+
+                  // Handle Google Sheets serial numbers passed as strings
+                  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+                    const baseDate = new Date(Date.UTC(1899, 11, 30));
+                    baseDate.setUTCDate(baseDate.getUTCDate() + Math.floor(Number(trimmed)));
+                    parsedDate = baseDate;
+                  } else if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(trimmed)) {
+                    // Treat as DD/MM/YYYY to avoid US-style MM/DD confusion
+                    const [dayStr, monthStr, yearStr] = trimmed.split("/");
+                    const day = parseInt(dayStr, 10);
+                    const month = parseInt(monthStr, 10);
+                    let year = parseInt(yearStr, 10);
+
+                    // Support 2‑digit years like 25 -> 2025
+                    if (year < 100) year += 2000;
+
+                    parsedDate = new Date(Date.UTC(year, month - 1, day));
+                  } else {
+                    // Fallback to native parsing for ISO and other safe formats
+                    parsedDate = new Date(trimmed);
+                  }
+                } else if (typeof date === "number") {
+                  parsedDate = new Date(date);
+                } else if (date instanceof Date) {
+                  parsedDate = date;
+                }
+
+                if (parsedDate && !isNaN(parsedDate.getTime())) {
                   receiptDate = parsedDate.toISOString().split("T")[0];
                 }
               } catch (e) {
