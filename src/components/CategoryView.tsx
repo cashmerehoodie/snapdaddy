@@ -218,7 +218,8 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
 
     try {
       if (editingCategory) {
-        const { error } = await supabase
+        // 1) Update the category row (name + emoji)
+        const { error: categoryError } = await supabase
           .from("categories")
           .update({
             name: trimmedName,
@@ -226,7 +227,18 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
           })
           .eq("id", editingCategory.id);
 
-        if (error) throw error;
+        if (categoryError) throw categoryError;
+
+        // 2) Update all receipts that use the old category name
+        if (editingCategory.name && editingCategory.name !== trimmedName) {
+          const { error: receiptsError } = await supabase
+            .from("receipts")
+            .update({ category: trimmedName })
+            .eq("user_id", userId)
+            .eq("category", editingCategory.name);
+
+          if (receiptsError) throw receiptsError;
+        }
       } else {
         const { error } = await supabase
           .from("categories")
