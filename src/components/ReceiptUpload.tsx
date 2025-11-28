@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Upload, FileText, Loader2, X } from "lucide-react";
+import { Upload, FileText, Loader2, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -109,6 +109,43 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
     if (newFiles.length === 0) {
       const input = document.getElementById("receipt-upload") as HTMLInputElement;
       if (input) input.value = "";
+    }
+  };
+
+  const handleDeleteReceipt = async (receiptId: string, imageUrl: string) => {
+    try {
+      toast.loading("Deleting receipt...", { id: `delete-${receiptId}` });
+
+      // Extract file path from URL
+      const urlParts = imageUrl.split('/receipts/');
+      if (urlParts.length > 1) {
+        const filePath = urlParts[1].split('?')[0];
+        
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from("receipts")
+          .remove([filePath]);
+
+        if (storageError) {
+          console.error("Storage delete error:", storageError);
+        }
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from("receipts")
+        .delete()
+        .eq("id", receiptId);
+
+      if (dbError) throw dbError;
+
+      toast.success("Receipt deleted!", { id: `delete-${receiptId}` });
+      
+      // Refresh the receipts list
+      await fetchRecentReceipts();
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting receipt", { id: `delete-${receiptId}` });
+      console.error("Delete error:", error);
     }
   };
 
@@ -353,7 +390,18 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
               {todayReceipts.map((receipt) => (
                 <Dialog key={receipt.id}>
                   <DialogTrigger asChild>
-                    <div className="cursor-pointer group">
+                    <div className="cursor-pointer group relative">
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="absolute top-1 right-1 h-6 w-6 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteReceipt(receipt.id, receipt.image_url);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                       <img 
                         src={receipt.image_url} 
                         alt="Receipt thumbnail" 
