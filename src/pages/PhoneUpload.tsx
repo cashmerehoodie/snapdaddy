@@ -75,6 +75,11 @@ const PhoneUpload = () => {
         const result = await response.json();
 
         if (!response.ok) {
+          if (response.status === 404 || response.status === 410) {
+            throw new Error(
+              "This upload link has expired. Please open SnapDaddy on your computer and generate a new QR code."
+            );
+          }
           throw new Error(result.error || "Upload failed");
         }
 
