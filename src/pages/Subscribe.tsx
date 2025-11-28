@@ -1,29 +1,61 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { Check, Loader2, Crown, Sparkles } from "lucide-react";
+import { Check, Loader2, Crown, Sparkles, CheckCircle2 } from "lucide-react";
 
 const Subscribe = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { subscribed, loading: subLoading, refresh } = useSubscription(user);
+  
+  const checkoutSuccess = searchParams.get("checkout") === "success";
 
-  // For now, show the subscribe UI immediately so users can always start checkout
-  // Any access / VIP checks are handled elsewhere (ProtectedRoute, AccessCode, etc.)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (checkoutSuccess && user) {
+      // Give webhook/Stripe a moment to process, then check subscription
+      const timer = setTimeout(() => {
+        refresh();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [checkoutSuccess, user, refresh]);
+
+  useEffect(() => {
+    if (!subLoading && subscribed) {
+      // User has access, redirect to dashboard
+      navigate("/dashboard", { replace: true });
+    }
+  }, [subscribed, subLoading, navigate]);
 
   const handleSubscribe = async () => {
+    if (!user) {
+      toast.error("Please log in first");
+      navigate("/auth");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error("Please log in first");
-        navigate("/auth");
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke("create-checkout");
 
       if (error) throw error;
@@ -49,9 +81,28 @@ const Subscribe = () => {
     "Priority support",
   ];
 
+  if (subLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Checking your subscription...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
       <Card className="w-full max-w-2xl border-border/50 shadow-lg">
+        {checkoutSuccess && (
+          <Alert className="m-6 mb-0 border-green-500/50 bg-green-500/10">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <AlertDescription className="text-green-700 dark:text-green-300">
+              Payment successful! Verifying your subscription...
+            </AlertDescription>
+          </Alert>
+        )}
         <CardHeader className="text-center">
           <div className="w-20 h-20 bg-gradient-to-br from-primary via-accent to-primary rounded-2xl flex items-center justify-center mx-auto mb-4 relative">
             <Crown className="w-10 h-10 text-primary-foreground" />
