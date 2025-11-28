@@ -13,6 +13,8 @@ import { z } from "zod";
 import Cropper from "react-easy-crop";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useTheme } from "next-themes";
+import ManageBillingButton from "@/components/ManageBillingButton";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   Select,
   SelectContent,
@@ -28,6 +30,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  const subscriptionStatus = useSubscription(user);
   
   const [profile, setProfile] = useState<{
     username: string;
@@ -542,6 +546,66 @@ const Profile = () => {
                   "Change Password"
                 )}
               </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-lg animate-slide-up hover:shadow-xl transition-all duration-300" style={{ animationDelay: '0.6s' }}>
+            <CardHeader>
+              <CardTitle>Subscription</CardTitle>
+              <CardDescription>Manage your subscription and billing</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                  <span className="text-sm font-medium">Status:</span>
+                  <span className={`text-sm font-semibold ${
+                    subscriptionStatus.subscribed 
+                      ? "text-green-600 dark:text-green-400" 
+                      : "text-muted-foreground"
+                  }`}>
+                    {subscriptionStatus.has_free_access 
+                      ? "VIP Access" 
+                      : subscriptionStatus.subscribed 
+                        ? "Active" 
+                        : "Inactive"}
+                  </span>
+                </div>
+                {subscriptionStatus.subscription_status && (
+                  <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                    <span className="text-sm font-medium">Plan:</span>
+                    <span className="text-sm">
+                      {subscriptionStatus.has_free_access ? "VIP" : "Premium (£5/month)"}
+                    </span>
+                  </div>
+                )}
+                {subscriptionStatus.trial_end && (
+                  <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                    <span className="text-sm font-medium">Trial Ends:</span>
+                    <span className="text-sm">
+                      {new Date(subscriptionStatus.trial_end).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                {subscriptionStatus.subscription_end && !subscriptionStatus.has_free_access && (
+                  <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+                    <span className="text-sm font-medium">Next Billing:</span>
+                    <span className="text-sm">
+                      {new Date(subscriptionStatus.subscription_end).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {subscriptionStatus.subscribed && !subscriptionStatus.has_free_access && (
+                <ManageBillingButton className="w-full" />
+              )}
+              {!subscriptionStatus.subscribed && !subscriptionStatus.has_free_access && (
+                <Button
+                  onClick={() => navigate("/subscribe")}
+                  className="w-full"
+                >
+                  Subscribe Now
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
