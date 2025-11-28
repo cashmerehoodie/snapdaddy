@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight } from "lucide-react";
+import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -24,6 +25,12 @@ const Landing = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Signed out successfully");
+    navigate("/auth");
+  };
 
   if (loading) {
     return (
@@ -48,13 +55,23 @@ const Landing = () => {
           </h1>
         </div>
         {user ? (
-          <Button
-            onClick={() => navigate("/dashboard")}
-            className="bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:scale-105 transition-all duration-300 shadow-md"
-          >
-            Go to Dashboard
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => navigate("/dashboard")}
+              className="bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:scale-105 transition-all duration-300 shadow-md"
+            >
+              Go to Dashboard
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="icon"
+              className="border-primary/50 hover:bg-destructive/10 hover:border-destructive hover:scale-105 transition-all duration-300"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         ) : (
           <Button
             onClick={() => navigate("/auth")}
