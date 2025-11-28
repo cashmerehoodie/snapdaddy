@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
+import CategoryView from "@/components/CategoryView";
 import GoogleSettings from "@/components/GoogleSettings";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -147,17 +148,22 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md mx-auto">
+          <TabsList className="grid w-full grid-cols-4 max-w-2xl mx-auto">
             <TabsTrigger value="upload" className="gap-2">
               <Upload className="w-4 h-4" />
               Upload
             </TabsTrigger>
+            <TabsTrigger value="categories">Categories</TabsTrigger>
             <TabsTrigger value="monthly">Monthly</TabsTrigger>
             <TabsTrigger value="yearly">Yearly</TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
             <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="monthly">
