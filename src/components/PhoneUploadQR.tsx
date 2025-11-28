@@ -13,6 +13,7 @@ import { Smartphone, Loader2, CheckCircle2, Clock } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PhoneUploadQRProps {
   userId: string;
@@ -20,6 +21,7 @@ interface PhoneUploadQRProps {
 }
 
 const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploadUrl, setUploadUrl] = useState<string>("");
@@ -27,6 +29,11 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const [uploadComplete, setUploadComplete] = useState(false);
+
+  // Don't render on mobile devices
+  if (isMobile) {
+    return null;
+  }
 
   useEffect(() => {
     if (!open) {
@@ -154,7 +161,7 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
         <DialogHeader>
           <DialogTitle>Upload from Phone</DialogTitle>
           <DialogDescription>
-            Scan this QR code with your phone to upload a receipt
+            For PC/Desktop users: Scan this QR code with your phone to upload a receipt
           </DialogDescription>
         </DialogHeader>
 
