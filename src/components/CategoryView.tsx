@@ -132,20 +132,20 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 px-2 sm:px-0">
       <Card className="border-border/50 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <Tag className="w-6 h-6 text-primary" />
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="text-lg sm:text-2xl flex items-center gap-2">
+            <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             Expenses by Category
           </CardTitle>
-          <CardDescription>
-            Total spending across all categories: <span className="font-semibold text-foreground">{currencySymbol}{total.toFixed(2)}</span>
+          <CardDescription className="text-xs sm:text-sm">
+            Total: <span className="font-semibold text-foreground">{currencySymbol}{total.toFixed(2)}</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="h-[400px]">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
+            <div className="h-[250px] sm:h-[350px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -153,8 +153,11 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={120}
+                    label={({ name, percent }) => {
+                      const isMobile = window.innerWidth < 640;
+                      return isMobile ? `${(percent * 100).toFixed(0)}%` : `${name} ${(percent * 100).toFixed(0)}%`;
+                    }}
+                    outerRadius={window.innerWidth < 640 ? 70 : window.innerWidth < 768 ? 90 : 120}
                     fill="hsl(var(--primary))"
                     dataKey="value"
                   >
@@ -167,12 +170,12 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-                            <p className="font-semibold text-foreground">{data.name}</p>
-                            <p className="text-sm text-muted-foreground">
+                          <div className="bg-card border border-border rounded-lg p-2 sm:p-3 shadow-lg">
+                            <p className="font-semibold text-foreground text-xs sm:text-sm">{data.name}</p>
+                            <p className="text-xs text-muted-foreground">
                               {data.count} receipt{data.count !== 1 ? 's' : ''}
                             </p>
-                            <p className="text-lg font-bold text-primary">
+                            <p className="text-sm sm:text-lg font-bold text-primary">
                               {currencySymbol}{data.value.toFixed(2)}
                             </p>
                           </div>
@@ -185,28 +188,28 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
               </ResponsiveContainer>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
-              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
+            <div className="space-y-2 sm:space-y-3">
+              <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-4">Category Breakdown</h3>
+              <div className="space-y-1.5 sm:space-y-2 max-h-[250px] sm:max-h-[350px] overflow-y-auto pr-1 sm:pr-2">
                 {categoryData.map((category, index) => (
                   <div
                     key={category.name}
-                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                       <div
-                        className="w-4 h-4 rounded-full"
+                        className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
                       />
-                      <div>
-                        <p className="font-medium">{category.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm sm:text-base truncate">{category.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {category.count} receipt{category.count !== 1 ? 's' : ''}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-foreground">
+                    <div className="text-right flex-shrink-0 ml-2">
+                      <p className="font-semibold text-foreground text-sm sm:text-base">
                         {currencySymbol}{category.value.toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
