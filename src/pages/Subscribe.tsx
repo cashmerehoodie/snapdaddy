@@ -1,14 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Check, Loader2, Crown, Sparkles } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const Subscribe = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
+  const { subscribed, has_free_access, loading } = useSubscription(user);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+  }, []);
+
+  // Redirect to dashboard if user already has access
+  useEffect(() => {
+    if (!loading && (subscribed || has_free_access)) {
+      navigate("/dashboard");
+    }
+  }, [loading, subscribed, has_free_access, navigate]);
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -45,6 +61,18 @@ const Subscribe = () => {
     "Monthly and yearly views",
     "Priority support",
   ];
+
+  // Show loading while checking subscription status
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
+        <div className="animate-pulse flex items-center gap-3">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-muted-foreground">Checking access...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
