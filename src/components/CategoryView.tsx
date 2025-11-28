@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { Tag } from "lucide-react";
+import { Tag, Edit2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface CategoryData {
   name: string;
@@ -11,10 +16,23 @@ interface CategoryData {
   emoji?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  emoji: string;
+  is_default: boolean;
+}
+
 interface CategoryViewProps {
   userId: string;
   currencySymbol: string;
 }
+
+const SUGGESTED_EMOJIS = [
+  "🛒", "⛽", "🍔", "🛍️", "🚗", "💡", "🎬", "🏥",
+  "✈️", "🏠", "📱", "💼", "🎓", "🐕", "☕", "🍕",
+  "🎮", "📚", "🎵", "💊", "🚌", "🏋️", "🎨", "📁"
+];
 
 const CATEGORY_COLORS = [
   "hsl(var(--primary))",
@@ -33,14 +51,21 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryEmoji, setNewCategoryEmoji] = useState("📁");
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchCategoryData();
+    fetchCategories();
   }, [userId]);
 
-  // Realtime subscription for receipt changes
+  // Realtime subscription for receipt and category changes
   useEffect(() => {
-    const channel = supabase
+    const receiptsChannel = supabase
       .channel('category-view-receipts')
       .on(
         'postgres_changes',
@@ -56,10 +81,44 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       )
       .subscribe();
 
+    const categoriesChannel = supabase
+      .channel('category-view-categories')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories',
+          filter: `user_id=eq.${userId}`
+        },
+        () => {
+          fetchCategories();
+          fetchCategoryData();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(receiptsChannel);
+      supabase.removeChannel(categoriesChannel);
     };
   }, [userId]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .eq("user_id", userId)
+        .order("is_default", { ascending: false })
+        .order("name");
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
   const fetchCategoryData = async () => {
     try {
@@ -113,6 +172,71 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       console.error("Error fetching category data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditDialog = (category: Category) => {
+    setEditingCategory(category);
+    setNewCategoryName(category.name);
+    setNewCategoryEmoji(category.emoji);
+    setIsCreating(false);
+    setIsDialogOpen(true);
+  };
+
+  const openCreateDialog = () => {
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryEmoji("📁");
+    setIsCreating(true);
+    setIsDialogOpen(true);
+  };
+
+  const resetDialog = () => {
+    setIsDialogOpen(false);
+    setEditingCategory(null);
+    setNewCategoryName("");
+    setNewCategoryEmoji("📁");
+    setIsCreating(false);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error("Category name cannot be empty");
+      return;
+    }
+
+    try {
+      if (isCreating) {
+        const { error } = await supabase
+          .from("categories")
+          .insert({
+            user_id: userId,
+            name: newCategoryName.trim(),
+            emoji: newCategoryEmoji,
+            is_default: false
+          });
+
+        if (error) throw error;
+        toast.success("Category created successfully");
+      } else if (editingCategory) {
+        const { error } = await supabase
+          .from("categories")
+          .update({
+            name: newCategoryName.trim(),
+            emoji: newCategoryEmoji
+          })
+          .eq("id", editingCategory.id);
+
+        if (error) throw error;
+        toast.success("Category updated successfully");
+      }
+
+      resetDialog();
+      fetchCategories();
+      fetchCategoryData();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save category");
+      console.error("Save category error:", error);
     }
   };
 
@@ -253,41 +377,125 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
             </div>
 
             <div className="space-y-3">
-              <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-lg">Category Breakdown</h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={openCreateDialog}
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Category
+                </Button>
+              </div>
               <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
-                {categoryData.map((category, index) => (
-                  <div
-                    key={category.name}
-                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300"
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <span className="text-2xl">{category.emoji || "📁"}</span>
-                      <div
-                        className="w-4 h-4 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-base truncate">{category.name}</p>
+                {categoryData.map((category, index) => {
+                  const categoryObj = categories.find(c => c.name === category.name);
+                  return (
+                    <div
+                      key={category.name}
+                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300 group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <span className="text-2xl">{category.emoji || "📁"}</span>
+                        <div
+                          className="w-4 h-4 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-base truncate">{category.name}</p>
+                            {categoryObj && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => openEditDialog(categoryObj)}
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {category.count} receipt{category.count !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <p className="font-semibold text-foreground text-base">
+                          {currencySymbol}{category.value.toFixed(2)}
+                        </p>
                         <p className="text-xs text-muted-foreground">
-                          {category.count} receipt{category.count !== 1 ? 's' : ''}
+                          {((category.value / total) * 100).toFixed(1)}%
                         </p>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0 ml-2">
-                      <p className="font-semibold text-foreground text-base">
-                        {currencySymbol}{category.value.toFixed(2)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {((category.value / total) * 100).toFixed(1)}%
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit/Create Category Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={resetDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{isCreating ? "Create New Category" : "Edit Category"}</DialogTitle>
+            <DialogDescription>
+              {isCreating ? "Add a new category with a custom emoji" : "Update the category name and emoji"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="category-name">Category Name</Label>
+              <Input
+                id="category-name"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="e.g., Groceries"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Choose Emoji</Label>
+              <div className="grid grid-cols-8 gap-2">
+                {SUGGESTED_EMOJIS.map((emoji) => (
+                  <Button
+                    key={emoji}
+                    variant={newCategoryEmoji === emoji ? "default" : "outline"}
+                    size="sm"
+                    className="text-xl h-10 w-10 p-0"
+                    onClick={() => setNewCategoryEmoji(emoji)}
+                  >
+                    {emoji}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Label htmlFor="custom-emoji">Or enter custom emoji:</Label>
+                <Input
+                  id="custom-emoji"
+                  value={newCategoryEmoji}
+                  onChange={(e) => setNewCategoryEmoji(e.target.value)}
+                  placeholder="🏠"
+                  className="w-20 text-center text-xl"
+                  maxLength={2}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={resetDialog}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCategory}>
+              {isCreating ? "Create" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

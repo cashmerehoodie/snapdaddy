@@ -14,7 +14,7 @@ import MigrateData from "@/components/MigrateData";
 import GoogleSettings from "@/components/GoogleSettings";
 import Onboarding from "@/components/Onboarding";
 import DashboardGreeting from "@/components/DashboardGreeting";
-import CategoryManager from "@/components/CategoryManager";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
@@ -184,7 +184,7 @@ const Dashboard = () => {
         <DashboardGreeting userId={user.id} />
         
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 max-w-4xl mx-auto bg-secondary/50 backdrop-blur-sm p-1 h-auto">
+          <TabsList className="grid w-full grid-cols-5 max-w-4xl mx-auto bg-secondary/50 backdrop-blur-sm p-1 h-auto">
             <TabsTrigger value="upload" className="gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">Upload</span>
@@ -192,10 +192,6 @@ const Dashboard = () => {
             <TabsTrigger value="categories" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
               <span className="hidden sm:inline">Categories</span>
               <span className="sm:hidden">Cat.</span>
-            </TabsTrigger>
-            <TabsTrigger value="manage" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
-              <span className="hidden sm:inline">Manage</span>
-              <span className="sm:hidden">Mng.</span>
             </TabsTrigger>
             <TabsTrigger value="monthly" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
               <span className="hidden sm:inline">Monthly</span>
@@ -217,10 +213,6 @@ const Dashboard = () => {
 
           <TabsContent value="categories">
             <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
-          </TabsContent>
-
-          <TabsContent value="manage">
-            <CategoryManager userId={user.id} />
           </TabsContent>
 
           <TabsContent value="monthly">
