@@ -39,13 +39,6 @@ const Subscribe = () => {
     }
   }, [checkoutSuccess, user, refresh]);
 
-  useEffect(() => {
-    if (!subLoading && subscribed) {
-      console.log("Subscribe: User already subscribed, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
-    }
-  }, [subscribed, subLoading, navigate]);
-
   const handleSubscribe = async () => {
     if (!user) {
       toast.error("Please log in first");
@@ -88,6 +81,33 @@ const Subscribe = () => {
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
           <p className="text-muted-foreground">Checking your subscription...</p>
         </div>
+      </div>
+    );
+  }
+
+  // If user is already subscribed, show them a different view
+  if (!subLoading && subscribed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
+        <Card className="w-full max-w-md border-border/50 shadow-lg">
+          <CardHeader className="text-center">
+            <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-green-500" />
+            </div>
+            <CardTitle className="text-2xl">You're All Set!</CardTitle>
+            <CardDescription className="text-base mt-2">
+              You already have an active subscription
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={() => navigate("/dashboard")}
+              className="w-full h-12"
+            >
+              Go to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
