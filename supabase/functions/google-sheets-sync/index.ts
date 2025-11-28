@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { refreshGoogleToken } from "../_shared/refreshGoogleToken.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken, receiptData, sheetsId } = await req.json();
+    const { accessToken, receiptData, sheetsId, userId } = await req.json();
+    let currentAccessToken = accessToken;
     
     if (!sheetsId) {
       throw new Error('Google Sheets ID not provided');
@@ -36,10 +38,28 @@ serve(async (req) => {
         `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${currentAccessToken}`,
           },
         }
       );
+      
+      // If unauthorized, try refreshing the token
+      if (sheetsResponse.status === 401 && userId) {
+        console.log("Access token expired, attempting refresh...");
+        const refreshResult = await refreshGoogleToken(userId, currentAccessToken);
+        if (refreshResult.success) {
+          currentAccessToken = refreshResult.accessToken;
+          // Retry the request with new token
+          sheetsResponse = await fetch(
+            `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${currentAccessToken}`,
+              },
+            }
+          );
+        }
+      }
       
       if (!sheetsResponse.ok) {
         const errorData = await sheetsResponse.json();
@@ -87,7 +107,7 @@ serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${currentAccessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -112,7 +132,7 @@ serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${currentAccessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -127,7 +147,7 @@ serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${currentAccessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -162,7 +182,7 @@ serve(async (req) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${currentAccessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

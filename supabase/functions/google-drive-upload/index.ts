@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { refreshGoogleToken } from "../_shared/refreshGoogleToken.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,7 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { imageUrl, fileName, accessToken, folderName = 'SnapDaddy Receipts' } = await req.json();
+    const { imageUrl, fileName, accessToken, folderName = 'SnapDaddy Receipts', userId } = await req.json();
+    let currentAccessToken = accessToken;
 
     console.log("Fetching image from:", imageUrl);
 
@@ -27,14 +29,32 @@ serve(async (req) => {
     console.log("Finding or creating folder in My Drive root:", folderName);
     
     // Search for folder in My Drive root specifically (not in shared drives or subfolders)
-    const folderSearchResponse = await fetch(
+    let folderSearchResponse = await fetch(
       `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${currentAccessToken}`,
         },
       }
     );
+
+    // If unauthorized, try refreshing the token
+    if (folderSearchResponse.status === 401 && userId) {
+      console.log("Access token expired, attempting refresh...");
+      const refreshResult = await refreshGoogleToken(userId, currentAccessToken);
+      if (refreshResult.success) {
+        currentAccessToken = refreshResult.accessToken;
+        // Retry the request with new token
+        folderSearchResponse = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
+          {
+            headers: {
+              'Authorization': `Bearer ${currentAccessToken}`,
+            },
+          }
+        );
+      }
+    }
 
     if (!folderSearchResponse.ok) {
       const errorText = await folderSearchResponse.text();
@@ -58,7 +78,7 @@ serve(async (req) => {
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${currentAccessToken}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -126,7 +146,7 @@ serve(async (req) => {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${currentAccessToken}`,
           'Content-Type': `multipart/related; boundary=${boundary}`,
         },
         body: body,
