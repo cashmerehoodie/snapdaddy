@@ -442,17 +442,112 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
           </TabsContent>
 
           <TabsContent value="excel" className="space-y-4 py-4">
-            <div className="p-8 text-center border rounded-lg bg-muted/30">
-              <div className="text-4xl mb-4">📊</div>
-              <h3 className="font-semibold mb-2">Excel / OneDrive Integration</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Coming soon! Export your receipts to Excel and OneDrive.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                This feature will allow you to sync your receipt data with Microsoft Excel 
-                and store receipt images in OneDrive.
-              </p>
+            {/* Connection Status */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900">
+                  <span className="text-xl">📊</span>
+                </div>
+                <div>
+                  <p className="font-medium">Microsoft Integration</p>
+                  <p className="text-sm text-muted-foreground">
+                    Sync your receipts to Excel and OneDrive
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {/* Excel Setup Instructions */}
+            <div className="space-y-4">
+              <div className="p-4 bg-primary/5 border rounded-lg">
+                <h3 className="font-semibold mb-3 flex items-center gap-2">
+                  <span className="text-xl">📝</span>
+                  Excel Workbook Setup
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex gap-3">
+                    <span className="font-semibold text-primary min-w-[24px]">1.</span>
+                    <p>Create or open an Excel workbook in <strong>Excel Online</strong> (OneDrive or Office 365)</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-semibold text-primary min-w-[24px]">2.</span>
+                    <p>Add column headers: <code className="bg-muted px-1 rounded text-xs">Date</code>, <code className="bg-muted px-1 rounded text-xs">Merchant</code>, <code className="bg-muted px-1 rounded text-xs">Amount</code>, <code className="bg-muted px-1 rounded text-xs">Category</code></p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-semibold text-primary min-w-[24px]">3.</span>
+                    <p>Copy the workbook URL from your browser</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="font-semibold text-primary min-w-[24px]">4.</span>
+                    <p>Paste the URL below to connect</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Excel Workbook URL */}
+              <div className="space-y-2">
+                <Label htmlFor="excel-url">Excel Workbook URL</Label>
+                <Input
+                  id="excel-url"
+                  placeholder="https://onedrive.live.com/edit.aspx?..."
+                  disabled
+                />
+                <p className="text-xs text-muted-foreground">
+                  Paste your Excel Online workbook URL here
+                </p>
+              </div>
+
+              {/* OneDrive Folder */}
+              <div className="space-y-2">
+                <Label htmlFor="onedrive-folder">OneDrive Folder Path</Label>
+                <Input
+                  id="onedrive-folder"
+                  placeholder="Documents/SnapDaddy Receipts"
+                  disabled
+                />
+                <p className="text-xs text-muted-foreground">
+                  Receipt images will be stored in this OneDrive folder
+                </p>
+              </div>
+
+              {/* Info Box */}
+              <div className="p-4 bg-secondary/50 rounded-lg space-y-3">
+                <div>
+                  <p className="text-sm font-medium mb-1">✨ What you'll get:</p>
+                  <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                    <li>Automatic sync of receipt data to your Excel workbook</li>
+                    <li>Receipt images stored in your OneDrive folder</li>
+                    <li>Easy access and backup of all your receipts</li>
+                    <li>Works with Excel Online and Microsoft 365</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Coming Soon Notice */}
+              <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🚧</span>
+                  <div>
+                    <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                      Microsoft Integration Coming Soon
+                    </p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      We're actively developing this integration. You'll be able to connect your Microsoft account
+                      and automatically sync receipt data to Excel and store images in OneDrive.
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                      For now, use the Google integration or manually export your receipts.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button disabled className="opacity-50 cursor-not-allowed">
+                Save Settings (Coming Soon)
+              </Button>
+            </DialogFooter>
           </TabsContent>
         </Tabs>
       </DialogContent>
