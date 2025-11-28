@@ -39,8 +39,12 @@ const Subscribe = () => {
     }
   }, [checkoutSuccess, user, refresh]);
 
-  // Removed auto-redirect - ProtectedRoute handles this
-  // If user is subscribed, they won't reach this page via ProtectedRoute
+  useEffect(() => {
+    if (!subLoading && subscribed) {
+      console.log("Subscribe: User already subscribed, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [subscribed, subLoading, navigate]);
 
   const handleSubscribe = async () => {
     if (!user) {
