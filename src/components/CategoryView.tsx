@@ -57,6 +57,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("📁");
   const [isCreating, setIsCreating] = useState(false);
+  const [originalCategoryName, setOriginalCategoryName] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategoryData();
@@ -178,21 +179,26 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const openEditDialog = (categoryName: string) => {
     const category = categories.find((c) => c.name === categoryName) || null;
 
+    setOriginalCategoryName(categoryName);
+
     if (category) {
       setEditingCategory(category);
       setNewCategoryName(category.name);
       setNewCategoryEmoji(category.emoji);
+      setIsCreating(false);
     } else {
-      // No existing category mapping yet – create one prefilled with this name
+      // No existing category mapping yet – start from the clicked name
       setEditingCategory(null);
       setNewCategoryName(categoryName);
       setNewCategoryEmoji("📁");
+      setIsCreating(false);
     }
 
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
+    setOriginalCategoryName(null);
     setEditingCategory(null);
     setNewCategoryName("");
     setNewCategoryEmoji("📁");
@@ -206,6 +212,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
     setNewCategoryName("");
     setNewCategoryEmoji("📁");
     setIsCreating(false);
+    setOriginalCategoryName(null);
   };
 
   const handleSaveCategory = async () => {
@@ -215,6 +222,8 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       toast.error("Category name cannot be empty");
       return;
     }
+
+    const oldName = originalCategoryName || editingCategory?.name || null;
 
     try {
       if (editingCategory) {
@@ -228,19 +237,9 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
           .eq("id", editingCategory.id);
 
         if (categoryError) throw categoryError;
-
-        // 2) Update all receipts that use the old category name
-        if (editingCategory.name && editingCategory.name !== trimmedName) {
-          const { error: receiptsError } = await supabase
-            .from("receipts")
-            .update({ category: trimmedName })
-            .eq("user_id", userId)
-            .eq("category", editingCategory.name);
-
-          if (receiptsError) throw receiptsError;
-        }
       } else {
-        const { error } = await supabase
+        // No existing category row yet – create one for the new name
+        const { error: categoryError } = await supabase
           .from("categories")
           .insert({
             user_id: userId,
@@ -249,7 +248,18 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
             is_default: false,
           });
 
-        if (error) throw error;
+        if (categoryError) throw categoryError;
+      }
+
+      // 2) Update all receipts that used the old label (e.g. "Food")
+      if (oldName && oldName !== trimmedName) {
+        const { error: receiptsError } = await supabase
+          .from("receipts")
+          .update({ category: trimmedName })
+          .eq("user_id", userId)
+          .eq("category", oldName);
+
+        if (receiptsError) throw receiptsError;
       }
 
       toast.success("Category updated successfully");
