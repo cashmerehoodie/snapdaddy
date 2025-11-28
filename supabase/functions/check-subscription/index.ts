@@ -27,13 +27,33 @@ serve(async (req) => {
     logStep("Function started");
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      logStep("No authorization header");
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        subscription_status: "inactive" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    
+    // Handle invalid/expired tokens gracefully
+    if (userError || !userData.user?.email) {
+      logStep("Invalid or expired token", { error: userError?.message });
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        subscription_status: "inactive" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+    
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     // Check if user has free access
