@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, CheckCircle2, AlertCircle, Camera, X } from "lucide-react";
@@ -11,36 +10,10 @@ const PhoneUpload = () => {
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
   const [uploadComplete, setUploadComplete] = useState(false);
-  const [sessionValid, setSessionValid] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Check if session is valid
-    const checkSession = async () => {
-      const { data, error } = await supabase
-        .from("upload_sessions")
-        .select("*")
-        .eq("session_id", sessionId)
-        .single();
-
-      if (error || !data) {
-        setSessionValid(false);
-        toast.error("Invalid or expired session");
-        return;
-      }
-
-      const expiresAt = new Date(data.expires_at);
-      if (expiresAt < new Date()) {
-        setSessionValid(false);
-        toast.error("This upload session has expired");
-      }
-    };
-
-    if (sessionId) {
-      checkSession();
-    }
-  }, [sessionId]);
+  
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,20 +77,6 @@ const PhoneUpload = () => {
       setUploading(false);
     }
   };
-
-  if (!sessionValid) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8 text-center">
-          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Session Expired</h1>
-          <p className="text-muted-foreground mb-6">
-            This upload session is no longer valid. Please scan a new QR code from your computer.
-          </p>
-        </Card>
-      </div>
-    );
-  }
 
   if (uploadComplete) {
     return (
