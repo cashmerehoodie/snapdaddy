@@ -32,7 +32,7 @@ serve(async (req) => {
       return new Response("Webhook secret not configured", { status: 500 });
     }
 
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    const event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
     logStep("Event received", { type: event.type });
 
     const subscription = event.data.object as Stripe.Subscription;
