@@ -220,8 +220,9 @@ export default function Onboarding({ userId }: OnboardingProps) {
     setIsOpen(false);
   };
 
-  const handleSkip = () => {
-    handleComplete();
+  const handleDoNotShowAgain = () => {
+    localStorage.setItem(`onboarding-completed-${userId}`, "true");
+    setIsOpen(false);
   };
 
   const step = ONBOARDING_STEPS[currentStep];
@@ -266,10 +267,10 @@ export default function Onboarding({ userId }: OnboardingProps) {
           <div className="flex items-center justify-between gap-4 pt-4 border-t">
             <Button
               variant="ghost"
-              onClick={handleSkip}
-              className="text-muted-foreground"
+              onClick={handleDoNotShowAgain}
+              className="text-muted-foreground hover:text-foreground"
             >
-              Skip Tour
+              Do not show again
             </Button>
             <div className="flex gap-2">
               {currentStep > 0 && (
