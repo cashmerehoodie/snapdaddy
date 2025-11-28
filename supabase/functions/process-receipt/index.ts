@@ -62,7 +62,24 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a receipt parser. Extract the merchant name, total amount, date, and category from receipt images. Return ONLY valid JSON in this exact format: {\"merchant_name\": \"string\", \"amount\": number, \"date\": \"YYYY-MM-DD\", \"category\": \"string\"}. For category, use one of: Food, Transportation, Shopping, Entertainment, Business, Health, or Other."
+            content: `You are a receipt parser. Extract the merchant name, total amount, date, and category from receipt images. Return ONLY valid JSON in this exact format: {"merchant_name": "string", "amount": number, "date": "YYYY-MM-DD", "category": "string"}.
+
+CRITICAL CATEGORIZATION RULES - Analyze the merchant name AND items on the receipt:
+
+1. FUEL: If the receipt mentions ANY of: pump, diesel, petrol, gas station, fuel, BP, Shell, Chevron, Texaco, Esso, Mobil, Circle K, 7-Eleven (with fuel), Speedway, Wawa (with fuel) → category: "Fuel"
+
+2. FOOD: If from restaurants, cafes, bakeries, grocery stores, supermarkets, food delivery, or mentions food items like: Tesco, Sainsbury's, Asda, Morrisons, Aldi, Lidl, Waitrose, McDonald's, KFC, Subway, Starbucks, Costa, Greggs, Pizza Hut, Domino's, takeaway, restaurant, cafe, bistro, diner → category: "Food"
+
+3. MATERIALS: If from hardware stores, building suppliers, or purchasing construction/work materials like: B&Q, Screwfix, Wickes, Toolstation, Homebase, Travis Perkins, Jewson, Selco, plumbing supplies, electrical supplies, timber, cement, paint, tools, building materials → category: "Materials"
+
+4. OTHER CATEGORIES:
+   - Transportation: Public transport, taxis, Uber, parking (NOT fuel)
+   - Shopping: Clothing, electronics, general retail (NOT groceries)
+   - Entertainment: Cinema, games, events
+   - Business: Office supplies, services
+   - Health: Pharmacy, medical
+
+Use intelligent matching - check both merchant name AND items purchased. If unsure between categories, prioritize Fuel > Materials > Food.`
           },
           {
             role: "user",
