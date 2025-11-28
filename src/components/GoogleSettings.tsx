@@ -31,6 +31,11 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   useEffect(() => {
     checkGoogleConnection();
     fetchSettings();
+    // Load saved setup mode from localStorage
+    const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
+    if (savedMode && (savedMode === 'choice' || savedMode === 'manual')) {
+      setSetupMode(savedMode as 'choice' | 'manual');
+    }
   }, [userId]);
 
   const fetchSettings = async () => {
@@ -53,12 +58,24 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     const hasToken = !!session?.provider_token;
     setIsConnected(hasToken);
     
-    // If connected and no sheets configured yet, show choice
-    if (hasToken && !sheetsId) {
-      setSetupMode('choice');
+    // Check if there's a saved mode preference
+    const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
+    
+    // If connected and no sheets configured yet, show choice (unless user already picked)
+    if (hasToken && !sheetsId && !savedMode) {
+      const newMode = 'choice';
+      setSetupMode(newMode);
+      localStorage.setItem(`google_setup_mode_${userId}`, newMode);
     } else if (sheetsId) {
-      setSetupMode('manual'); // Already configured
+      const newMode = 'manual';
+      setSetupMode(newMode); // Already configured
+      localStorage.setItem(`google_setup_mode_${userId}`, newMode);
     }
+  };
+
+  const handleSetupModeChange = (mode: 'choice' | 'manual') => {
+    setSetupMode(mode);
+    localStorage.setItem(`google_setup_mode_${userId}`, mode);
   };
 
   const extractSheetId = (input: string): string => {
@@ -137,7 +154,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
 
       setSheetsId(data.spreadsheetId);
       setDriveFolder(data.folderName);
-      setSetupMode('manual');
+      handleSetupModeChange('manual');
       
       toast.success(
         <div>
@@ -229,7 +246,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => setSetupMode('manual')}
+                  onClick={() => handleSetupModeChange('manual')}
                   className="h-auto py-4 flex-col items-start"
                 >
                   <span className="font-semibold">📋 Use Existing Sheet</span>
@@ -244,6 +261,18 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
           {/* Manual Setup Form - shown when manual is chosen or already configured */}
           {setupMode === 'manual' && (
             <>
+          {isConnected && !sheetsId && (
+            <div className="flex justify-start mb-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleSetupModeChange('choice')}
+                className="gap-2"
+              >
+                ← Back to setup options
+              </Button>
+            </div>
+          )}
 
           {/* Google Sheets ID */}
           <div className="space-y-2">
