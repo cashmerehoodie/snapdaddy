@@ -1,0 +1,124 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Check, Loader2, Crown, Sparkles } from "lucide-react";
+
+const Subscribe = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubscribe = async () => {
+    setIsLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please log in first");
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+
+      if (error) throw error;
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error: any) {
+      console.error("Error creating checkout:", error);
+      toast.error(error.message || "Failed to start checkout");
+      setIsLoading(false);
+    }
+  };
+
+  const features = [
+    "Full access to all features",
+    "Upload and organize unlimited receipts",
+    "Advanced analytics and reporting",
+    "Category management",
+    "Monthly and yearly views",
+    "Priority support",
+  ];
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
+      <Card className="w-full max-w-2xl border-border/50 shadow-lg">
+        <CardHeader className="text-center">
+          <div className="w-20 h-20 bg-gradient-to-br from-primary via-accent to-primary rounded-2xl flex items-center justify-center mx-auto mb-4 relative">
+            <Crown className="w-10 h-10 text-primary-foreground" />
+            <Sparkles className="w-4 h-4 text-yellow-300 absolute top-2 right-2 animate-pulse" />
+          </div>
+          <CardTitle className="text-3xl">Premium Subscription</CardTitle>
+          <CardDescription className="text-lg mt-2">
+            Get full access with a 14-day free trial
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <div className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              £5<span className="text-xl">/month</span>
+            </div>
+            <p className="text-muted-foreground mt-2">
+              Start your 14-day free trial today
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Cancel anytime • No commitment
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <p className="font-semibold text-center">What you'll get:</p>
+            <div className="grid gap-2">
+              {features.map((feature, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
+                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                  <span>{feature}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={handleSubscribe}
+            className="w-full h-12 text-lg"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Loading checkout...
+              </>
+            ) : (
+              <>
+                Start Free Trial
+              </>
+            )}
+          </Button>
+
+          <div className="text-center space-y-2">
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => navigate("/access-code")}
+              className="text-sm"
+            >
+              Have a VIP access code?
+            </Button>
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            By subscribing, you agree to automatic renewal. Your card will be charged after the 14-day trial unless you cancel.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Subscribe;

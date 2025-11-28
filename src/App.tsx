@@ -10,6 +10,9 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import PhoneUpload from "./pages/PhoneUpload";
 import NotFound from "./pages/NotFound";
+import Subscribe from "./pages/Subscribe";
+import AccessCode from "./pages/AccessCode";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -23,8 +26,24 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/subscribe" element={<Subscribe />} />
+            <Route path="/access-code" element={<AccessCode />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/upload/:sessionId" element={<PhoneUpload />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
