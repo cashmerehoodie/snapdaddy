@@ -8,49 +8,10 @@ import { Check, Loader2, Crown, Sparkles } from "lucide-react";
 
 const Subscribe = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          // Not logged in, just stop checking and show subscribe page
-          setCheckingAccess(false);
-          return;
-        }
-
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("has_free_access, subscription_status")
-          .eq("user_id", session.user.id)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Error loading profile for subscribe page:", error);
-          setCheckingAccess(false);
-          return;
-        }
-
-        const hasAccess = profile?.has_free_access ||
-          profile?.subscription_status === "active" ||
-          profile?.subscription_status === "trialing";
-
-        if (hasAccess) {
-          navigate("/dashboard", { replace: true });
-        } else {
-          setCheckingAccess(false);
-        }
-      } catch (err) {
-        console.error("Unexpected error checking access on subscribe page:", err);
-        setCheckingAccess(false);
-      }
-    };
-
-    checkAccess();
-  }, [navigate]);
+  // For now, show the subscribe UI immediately so users can always start checkout
+  // Any access / VIP checks are handled elsewhere (ProtectedRoute, AccessCode, etc.)
 
   const handleSubscribe = async () => {
     setIsLoading(true);
@@ -87,18 +48,6 @@ const Subscribe = () => {
     "Monthly and yearly views",
     "Priority support",
   ];
-
-  // Show loading while checking access
-  if (checkingAccess) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
-        <div className="animate-pulse flex items-center gap-3">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-muted-foreground">Checking your access...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/10 p-4">
