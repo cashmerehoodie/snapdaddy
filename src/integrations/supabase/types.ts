@@ -49,6 +49,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          active_until: string | null
           avatar_url: string | null
           created_at: string
           free_access_code: string | null
@@ -66,6 +67,7 @@ export type Database = {
           username: string | null
         }
         Insert: {
+          active_until?: string | null
           avatar_url?: string | null
           created_at?: string
           free_access_code?: string | null
@@ -83,6 +85,7 @@ export type Database = {
           username?: string | null
         }
         Update: {
+          active_until?: string | null
           avatar_url?: string | null
           created_at?: string
           free_access_code?: string | null
