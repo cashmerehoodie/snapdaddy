@@ -218,18 +218,12 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       return;
     }
 
-    // Prevent duplicate category names for this user to avoid unique constraint errors
     const duplicate = categories.find((cat) => {
       if (editingCategory) {
         return cat.id !== editingCategory.id && cat.name === trimmedName;
       }
       return cat.name === trimmedName;
     });
-
-    if (duplicate) {
-      toast.error("You already have a category with this name. Please choose another name.");
-      return;
-    }
 
     try {
       if (isCreating) {
