@@ -67,11 +67,26 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Sign out error:", error);
+        // Even if there's an error, clear local state and redirect
+      }
+      
+      // Clear local state
+      setUser(null);
+      setSession(null);
+      
       toast.success("Signed out successfully");
       navigate("/auth");
     } catch (error: any) {
-      toast.error(error.message || "Error signing out");
+      console.error("Sign out error:", error);
+      // Clear state and redirect anyway
+      setUser(null);
+      setSession(null);
+      toast.success("Signed out");
+      navigate("/auth");
     }
   };
 
