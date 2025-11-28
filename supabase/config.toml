@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.setup-google-storage]
 verify_jwt = false
+
+[functions.create-upload-session]
+verify_jwt = true
+
+[functions.phone-upload]
+verify_jwt = false
