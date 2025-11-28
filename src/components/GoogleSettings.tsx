@@ -261,7 +261,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
           {/* Manual Setup Form - shown when manual is chosen or already configured */}
           {setupMode === 'manual' && (
             <>
-          {isConnected && !sheetsId && (
+          {isConnected && (
             <div className="flex justify-start mb-2">
               <Button 
                 variant="ghost" 
