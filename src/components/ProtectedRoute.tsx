@@ -49,9 +49,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   if (!subscribed) {
+    console.log("ProtectedRoute: No subscription, redirecting to subscribe");
+    console.log("ProtectedRoute: subscribed =", subscribed, "subLoading =", subLoading);
     return <Navigate to="/subscribe" replace />;
   }
 
+  console.log("ProtectedRoute: Access granted - subscribed =", subscribed);
   return <>{children}</>;
 };
 
