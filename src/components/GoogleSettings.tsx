@@ -28,10 +28,18 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [setupMode, setSetupMode] = useState<'choice' | 'auto' | 'manual' | null>(null);
   const [autoSetupLoading, setAutoSetupLoading] = useState(false);
+  
+  // Microsoft states
+  const [excelWorkbookUrl, setExcelWorkbookUrl] = useState("");
+  const [oneDriveFolderPath, setOneDriveFolderPath] = useState("Documents/SnapDaddy Receipts");
+  const [isMicrosoftConnected, setIsMicrosoftConnected] = useState(false);
+  const [microsoftSaving, setMicrosoftSaving] = useState(false);
 
   useEffect(() => {
     checkGoogleConnection();
     fetchSettings();
+    checkMicrosoftConnection();
+    fetchMicrosoftSettings();
     
     // Load saved setup mode from localStorage
     const savedMode = localStorage.getItem(`google_setup_mode_${userId}`);
@@ -285,6 +293,63 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     }
   };
 
+  // Microsoft functions
+  const fetchMicrosoftSettings = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("microsoft_excel_workbook_id, microsoft_onedrive_folder_path")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (data?.microsoft_excel_workbook_id) {
+      setExcelWorkbookUrl(data.microsoft_excel_workbook_id);
+    }
+    if (data?.microsoft_onedrive_folder_path) {
+      setOneDriveFolderPath(data.microsoft_onedrive_folder_path);
+    }
+  };
+
+  const checkMicrosoftConnection = async () => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("microsoft_access_token")
+      .eq("user_id", userId)
+      .single();
+    
+    setIsMicrosoftConnected(!!profile?.microsoft_access_token);
+  };
+
+  const handleMicrosoftConnect = async () => {
+    toast.info(
+      <div>
+        <p className="font-semibold">Microsoft Integration Coming Soon</p>
+        <p className="text-xs mt-1">OAuth authentication will be available in the next update</p>
+      </div>
+    );
+  };
+
+  const handleMicrosoftSave = async () => {
+    setMicrosoftSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          microsoft_excel_workbook_id: excelWorkbookUrl,
+          microsoft_onedrive_folder_path: oneDriveFolderPath || 'Documents/SnapDaddy Receipts'
+        })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      toast.success("Microsoft settings saved!");
+      setOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || "Error saving Microsoft settings");
+    } finally {
+      setMicrosoftSaving(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -445,107 +510,121 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
             {/* Connection Status */}
             <div className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  isMicrosoftConnected ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-800'
+                }`}>
                   <span className="text-xl">📊</span>
                 </div>
                 <div>
-                  <p className="font-medium">Microsoft Integration</p>
+                  <p className="font-medium">
+                    {isMicrosoftConnected ? "Microsoft Connected" : "Not Connected"}
+                  </p>
                   <p className="text-sm text-muted-foreground">
-                    Sync your receipts to Excel and OneDrive
+                    {isMicrosoftConnected 
+                      ? "Your receipts will sync to Excel and OneDrive" 
+                      : "Connect to enable automatic syncing"}
+                  </p>
+                </div>
+              </div>
+              {!isMicrosoftConnected && (
+                <Button onClick={handleMicrosoftConnect} size="sm" variant="outline">
+                  Connect Microsoft
+                </Button>
+              )}
+            </div>
+
+            {/* Excel Setup Instructions */}
+            <div className="p-4 bg-primary/5 border rounded-lg">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <span className="text-xl">📝</span>
+                Excel Workbook Setup
+              </h3>
+              <div className="space-y-3 text-sm">
+                <div className="flex gap-3">
+                  <span className="font-semibold text-primary min-w-[24px]">1.</span>
+                  <p>Create or open an Excel workbook in <strong>Excel Online</strong> (OneDrive or Office 365)</p>
+                </div>
+                <div className="flex gap-3">
+                  <span className="font-semibold text-primary min-w-[24px]">2.</span>
+                  <p>Add column headers: <code className="bg-muted px-1 rounded text-xs">Date</code>, <code className="bg-muted px-1 rounded text-xs">Merchant</code>, <code className="bg-muted px-1 rounded text-xs">Amount</code>, <code className="bg-muted px-1 rounded text-xs">Category</code></p>
+                </div>
+                <div className="flex gap-3">
+                  <span className="font-semibold text-primary min-w-[24px]">3.</span>
+                  <p>Copy the workbook ID from the URL (the long string between /d/ and /edit)</p>
+                </div>
+                <div className="flex gap-3">
+                  <span className="font-semibold text-primary min-w-[24px]">4.</span>
+                  <p>Paste the workbook ID below</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Excel Workbook ID */}
+            <div className="space-y-2">
+              <Label htmlFor="excel-url">Excel Workbook ID</Label>
+              <Input
+                id="excel-url"
+                placeholder="e.g., 01ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                value={excelWorkbookUrl}
+                onChange={(e) => setExcelWorkbookUrl(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                The workbook ID can be found in your Excel Online URL
+              </p>
+            </div>
+
+            {/* OneDrive Folder */}
+            <div className="space-y-2">
+              <Label htmlFor="onedrive-folder">OneDrive Folder Path</Label>
+              <Input
+                id="onedrive-folder"
+                placeholder="Documents/SnapDaddy Receipts"
+                value={oneDriveFolderPath}
+                onChange={(e) => setOneDriveFolderPath(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Receipt images will be stored in this OneDrive folder
+              </p>
+            </div>
+
+            {/* Info Box */}
+            <div className="p-4 bg-secondary/50 rounded-lg space-y-3">
+              <div>
+                <p className="text-sm font-medium mb-1">✨ What you'll get:</p>
+                <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+                  <li>Automatic sync of receipt data to your Excel workbook</li>
+                  <li>Receipt images stored in your OneDrive folder</li>
+                  <li>Easy access and backup of all your receipts</li>
+                  <li>Works with Excel Online and Microsoft 365</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Important Note */}
+            <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    Edge Functions Active
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300">
+                    Microsoft integration edge functions are now deployed! Once you connect your Microsoft account via OAuth (coming soon),
+                    receipts will automatically sync to Excel and store images in OneDrive.
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                    You can save your workbook settings now to prepare for the OAuth integration.
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Excel Setup Instructions */}
-            <div className="space-y-4">
-              <div className="p-4 bg-primary/5 border rounded-lg">
-                <h3 className="font-semibold mb-3 flex items-center gap-2">
-                  <span className="text-xl">📝</span>
-                  Excel Workbook Setup
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex gap-3">
-                    <span className="font-semibold text-primary min-w-[24px]">1.</span>
-                    <p>Create or open an Excel workbook in <strong>Excel Online</strong> (OneDrive or Office 365)</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-semibold text-primary min-w-[24px]">2.</span>
-                    <p>Add column headers: <code className="bg-muted px-1 rounded text-xs">Date</code>, <code className="bg-muted px-1 rounded text-xs">Merchant</code>, <code className="bg-muted px-1 rounded text-xs">Amount</code>, <code className="bg-muted px-1 rounded text-xs">Category</code></p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-semibold text-primary min-w-[24px]">3.</span>
-                    <p>Copy the workbook URL from your browser</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="font-semibold text-primary min-w-[24px]">4.</span>
-                    <p>Paste the URL below to connect</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Excel Workbook URL */}
-              <div className="space-y-2">
-                <Label htmlFor="excel-url">Excel Workbook URL</Label>
-                <Input
-                  id="excel-url"
-                  placeholder="https://onedrive.live.com/edit.aspx?..."
-                  disabled
-                />
-                <p className="text-xs text-muted-foreground">
-                  Paste your Excel Online workbook URL here
-                </p>
-              </div>
-
-              {/* OneDrive Folder */}
-              <div className="space-y-2">
-                <Label htmlFor="onedrive-folder">OneDrive Folder Path</Label>
-                <Input
-                  id="onedrive-folder"
-                  placeholder="Documents/SnapDaddy Receipts"
-                  disabled
-                />
-                <p className="text-xs text-muted-foreground">
-                  Receipt images will be stored in this OneDrive folder
-                </p>
-              </div>
-
-              {/* Info Box */}
-              <div className="p-4 bg-secondary/50 rounded-lg space-y-3">
-                <div>
-                  <p className="text-sm font-medium mb-1">✨ What you'll get:</p>
-                  <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
-                    <li>Automatic sync of receipt data to your Excel workbook</li>
-                    <li>Receipt images stored in your OneDrive folder</li>
-                    <li>Easy access and backup of all your receipts</li>
-                    <li>Works with Excel Online and Microsoft 365</li>
-                  </ul>
-                </div>
-              </div>
-
-              {/* Coming Soon Notice */}
-              <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">🚧</span>
-                  <div>
-                    <p className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                      Microsoft Integration Coming Soon
-                    </p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
-                      We're actively developing this integration. You'll be able to connect your Microsoft account
-                      and automatically sync receipt data to Excel and store images in OneDrive.
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                      For now, use the Google integration or manually export your receipts.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <DialogFooter>
-              <Button disabled className="opacity-50 cursor-not-allowed">
-                Save Settings (Coming Soon)
+              <Button 
+                onClick={handleMicrosoftSave} 
+                disabled={microsoftSaving || !excelWorkbookUrl || !oneDriveFolderPath}
+              >
+                {microsoftSaving ? "Saving..." : "Save Settings"}
               </Button>
             </DialogFooter>
           </TabsContent>
