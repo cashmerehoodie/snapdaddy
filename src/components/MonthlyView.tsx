@@ -29,6 +29,11 @@ interface Receipt {
   image_url: string;
 }
 
+interface CategoryEmoji {
+  name: string;
+  emoji: string;
+}
+
 interface MonthData {
   month: string;
   monthIndex: number;
@@ -56,9 +61,11 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [monthsData, setMonthsData] = useState<MonthData[]>([]);
+  const [categoryEmojis, setCategoryEmojis] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     fetchAvailableYears();
+    fetchCategoryEmojis();
   }, [userId]);
 
   useEffect(() => {
@@ -100,6 +107,48 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
       supabase.removeChannel(channel);
     };
   }, [userId, selectedMonth]);
+
+  // Realtime subscription for category changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('monthly-view-categories')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories',
+          filter: `user_id=eq.${userId}`
+        },
+        () => {
+          fetchCategoryEmojis();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
+
+  const fetchCategoryEmojis = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("name, emoji")
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      const emojiMap = new Map<string, string>();
+      (data || []).forEach((cat) => {
+        emojiMap.set(cat.name, cat.emoji);
+      });
+      setCategoryEmojis(emojiMap);
+    } catch (error) {
+      console.error("Error fetching category emojis:", error);
+    }
+  };
 
   const fetchAvailableYears = async () => {
     try {
@@ -599,8 +648,9 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                       {receipt.merchant_name || "Unknown Merchant"}
                     </h3>
                     {receipt.category && (
-                      <Badge variant="secondary" className="text-xs">
-                        {receipt.category}
+                      <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                        <span>{categoryEmojis.get(receipt.category) || "📁"}</span>
+                        <span>{receipt.category}</span>
                       </Badge>
                     )}
                   </div>
