@@ -94,7 +94,7 @@ const CategoryManager = ({ userId }: CategoryManagerProps) => {
           user_id: userId,
           name: newCategoryName.trim(),
           emoji: newCategoryEmoji,
-          is_default: false
+          is_default: false,
         });
 
       if (error) throw error;
@@ -105,11 +105,7 @@ const CategoryManager = ({ userId }: CategoryManagerProps) => {
       setIsDialogOpen(false);
     } catch (error: any) {
       console.error("Error creating category:", error);
-      if (error.code === '23505') {
-        toast.error("Category already exists");
-      } else {
-        toast.error("Failed to create category");
-      }
+      toast.error(error?.message || "Failed to create category");
     }
   };
 
@@ -121,7 +117,7 @@ const CategoryManager = ({ userId }: CategoryManagerProps) => {
         .from("categories")
         .update({
           name: newCategoryName.trim(),
-          emoji: newCategoryEmoji
+          emoji: newCategoryEmoji,
         })
         .eq("id", editingCategory.id);
 
@@ -134,7 +130,7 @@ const CategoryManager = ({ userId }: CategoryManagerProps) => {
       setIsDialogOpen(false);
     } catch (error: any) {
       console.error("Error updating category:", error);
-      toast.error("Failed to update category");
+      toast.error(error?.message || "Failed to update category");
     }
   };
 
