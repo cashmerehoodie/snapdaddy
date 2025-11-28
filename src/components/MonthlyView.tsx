@@ -337,24 +337,14 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
 
       toast.success(`Successfully deleted ${receiptsToDelete.length} receipts from ${year}`, { id: "delete-year" });
 
-      // Refresh data
+      // Clear current month and receipts immediately in the UI
+      setSelectedMonth(null);
+      setReceipts([]);
+      setTotal(0);
+
+      // Refresh data for year grid
       await fetchAvailableYears();
-      
-      // If deleted current year, switch to most recent available year
-      if (year === selectedYear && availableYears.length > 1) {
-        const otherYears = availableYears.filter(y => y !== year);
-        if (otherYears.length > 0) {
-          setSelectedYear(otherYears[0]);
-        }
-      } else if (availableYears.length === 1) {
-        // If this was the only year, reset to month grid
-        setSelectedMonth(null);
-      } else {
-        await fetchYearlyData();
-        if (selectedMonth !== null) {
-          await fetchMonthReceipts();
-        }
-      }
+      await fetchYearlyData();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete receipts", { id: "delete-year" });
       console.error("Delete year error:", error);
