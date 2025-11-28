@@ -354,19 +354,9 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
 
   if (loading) {
     return (
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-6xl mx-auto border-border/50 shadow-lg">
         <CardContent className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading expenses...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loading) {
-    return (
-      <Card className="max-w-4xl mx-auto">
-        <CardContent className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">Loading...</p>
         </CardContent>
       </Card>
     );
@@ -375,8 +365,8 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   // Show month grid when no month is selected
   if (selectedMonth === null) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Card className="border-border/50 shadow-lg">
+      <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+        <Card className="border-border/50 shadow-lg animate-slide-up">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -389,17 +379,17 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                 </CardDescription>
               </div>
               {availableYears.length > 0 && (
-                <div className="flex gap-2">
-                  {availableYears.map((year) => (
-                    <div key={year} className="relative inline-block group">
-                      <Button
-                        variant={year === selectedYear ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedYear(year)}
-                        className="pr-8"
-                      >
-                        {year}
-                      </Button>
+              <div className="flex gap-2">
+                {availableYears.map((year) => (
+                  <div key={year} className="relative inline-block group">
+                    <Button
+                      variant={year === selectedYear ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedYear(year)}
+                      className="pr-8 transition-all duration-300 hover:scale-105"
+                    >
+                      {year}
+                    </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -438,12 +428,13 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
         </Card>
 
         <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {monthsData.map((monthData) => (
+          {monthsData.map((monthData, index) => (
             <Card
               key={monthData.monthIndex}
-              className={`border-border/50 cursor-pointer transition-all hover:shadow-lg hover:scale-105 ${
+              className={`border-border/50 cursor-pointer transition-all duration-300 hover:shadow-xl hover:scale-105 animate-scale-in ${
                 monthData.count > 0 ? 'hover:border-primary' : 'opacity-60'
               }`}
+              style={{ animationDelay: `${index * 0.05}s` }}
               onClick={() => monthData.count > 0 && setSelectedMonth(monthData.monthIndex)}
             >
               <CardContent className="py-6 text-center">
@@ -472,7 +463,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
   const selectedMonthName = MONTHS[selectedMonth];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
       <Card className="border-border/50 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -485,7 +476,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                   setIsSelecting(false);
                   setSelectedIds(new Set());
                 }}
-                className="h-8 w-8"
+                className="h-8 w-8 hover:scale-110 transition-transform duration-300"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>

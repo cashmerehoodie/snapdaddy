@@ -154,7 +154,7 @@ const Dashboard = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/profile")}
-              className="gap-2"
+              className="gap-2 hover:scale-105 transition-all duration-300"
             >
               <Avatar className="w-8 h-8">
                 <AvatarImage src={avatarUrl || undefined} />
@@ -169,7 +169,7 @@ const Dashboard = () => {
               variant="outline"
               size="sm"
               onClick={handleSignOut}
-              className="gap-2"
+              className="gap-2 hover:scale-105 transition-all duration-300"
             >
               <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Sign Out</span>
@@ -180,15 +180,25 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto">
-            <TabsTrigger value="upload" className="gap-2">
+          <TabsList className="grid w-full grid-cols-5 max-w-3xl mx-auto bg-secondary/50 backdrop-blur-sm p-1 h-auto">
+            <TabsTrigger value="upload" className="gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
               <Upload className="w-4 h-4" />
-              Upload
+              <span className="hidden sm:inline">Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly</TabsTrigger>
-            <TabsTrigger value="migrate">Migrate</TabsTrigger>
+            <TabsTrigger value="categories" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+              <span className="hidden sm:inline">Categories</span>
+              <span className="sm:hidden">Cat.</span>
+            </TabsTrigger>
+            <TabsTrigger value="monthly" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+              Monthly
+            </TabsTrigger>
+            <TabsTrigger value="yearly" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+              Yearly
+            </TabsTrigger>
+            <TabsTrigger value="migrate" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+              <span className="hidden sm:inline">Migrate</span>
+              <span className="sm:hidden">Mig.</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">

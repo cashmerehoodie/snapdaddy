@@ -205,7 +205,7 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
 
   if (loading) {
     return (
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-6xl mx-auto border-border/50 shadow-lg">
         <CardContent className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading yearly data...</p>
         </CardContent>
@@ -214,8 +214,8 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <Card className="border-border/50 shadow-lg">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <Card className="border-border/50 shadow-lg animate-slide-up">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -226,17 +226,17 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
               <CardDescription className="flex items-center gap-2">
                 {selectedYear}
                 {availableYears.length > 0 && (
-                  <div className="flex gap-1 ml-4">
-                    {availableYears.map((year) => (
-                      <div key={year} className="relative inline-block group">
-                        <Button
-                          variant={year === selectedYear ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedYear(year)}
-                          className="pr-8"
-                        >
-                          {year}
-                        </Button>
+                    <div className="flex gap-1 ml-4">
+                      {availableYears.map((year) => (
+                        <div key={year} className="relative inline-block group">
+                          <Button
+                            variant={year === selectedYear ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedYear(year)}
+                            className="pr-8 transition-all duration-300 hover:scale-105"
+                          >
+                            {year}
+                          </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -283,9 +283,11 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
       </Card>
 
       {monthlyTotals.length === 0 ? (
-        <Card className="border-border/50">
+        <Card className="border-border/50 shadow-lg animate-slide-up" style={{ animationDelay: '0.1s' }}>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <TrendingUp className="w-16 h-16 text-muted-foreground/30 mb-4" />
+            <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4">
+              <TrendingUp className="w-8 h-8 text-primary" />
+            </div>
             <p className="text-muted-foreground text-center">
               No expenses recorded this year yet.
               <br />
@@ -295,10 +297,11 @@ const YearlyView = ({ userId, currencySymbol }: YearlyViewProps) => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {monthlyTotals.map((item) => (
+          {monthlyTotals.map((item, index) => (
             <Card
               key={item.month}
-              className="border-border/50 hover:shadow-md transition-shadow"
+              className="border-border/50 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-scale-in"
+              style={{ animationDelay: `${index * 0.05}s` }}
             >
               <CardContent className="flex items-center justify-between py-6">
                 <div>

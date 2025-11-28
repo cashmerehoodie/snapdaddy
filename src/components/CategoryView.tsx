@@ -104,7 +104,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
 
   if (loading) {
     return (
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-6xl mx-auto border-border/50 shadow-lg">
         <CardContent className="flex items-center justify-center py-12">
           <p className="text-muted-foreground">Loading expenses...</p>
         </CardContent>
@@ -114,7 +114,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
 
   if (categoryData.length === 0) {
     return (
-      <Card className="max-w-4xl mx-auto">
+      <Card className="max-w-6xl mx-auto border-border/50 shadow-lg animate-fade-in">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-2">
             <Tag className="w-6 h-6 text-primary" />
@@ -122,8 +122,11 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
           </CardTitle>
           <CardDescription>No receipts found</CardDescription>
         </CardHeader>
-        <CardContent className="flex items-center justify-center py-12">
-          <p className="text-muted-foreground">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center mb-4">
+            <Tag className="w-8 h-8 text-primary" />
+          </div>
+          <p className="text-muted-foreground text-center">
             Upload some receipts to see your expense breakdown by category
           </p>
         </CardContent>
@@ -131,21 +134,62 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
     );
   }
 
+  const totalReceipts = categoryData.reduce((sum, cat) => sum + cat.count, 0);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6 px-2 sm:px-0">
-      <Card className="border-border/50 shadow-lg">
-        <CardHeader className="pb-3 sm:pb-6">
-          <CardTitle className="text-lg sm:text-2xl flex items-center gap-2">
-            <Tag className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 animate-slide-up">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total Spending</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  {currencySymbol}{total.toFixed(2)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+                <Tag className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-1">Total Receipts</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {totalReceipts}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {categoryData.length} {categoryData.length === 1 ? 'category' : 'categories'}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
+                <Tag className="w-6 h-6 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Card */}
+      <Card className="border-border/50 shadow-lg animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-2">
+            <Tag className="w-6 h-6 text-primary" />
             Expenses by Category
           </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Total: <span className="font-semibold text-foreground">{currencySymbol}{total.toFixed(2)}</span>
+          <CardDescription>
+            View your spending breakdown across all categories
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:grid md:grid-cols-2 gap-4 sm:gap-8">
-            <div className="h-[250px] sm:h-[350px] md:h-[400px]">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-8">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -157,7 +201,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                       const isMobile = window.innerWidth < 640;
                       return isMobile ? `${(percent * 100).toFixed(0)}%` : `${name} ${(percent * 100).toFixed(0)}%`;
                     }}
-                    outerRadius={window.innerWidth < 640 ? 70 : window.innerWidth < 768 ? 90 : 120}
+                    outerRadius={window.innerWidth < 640 ? 80 : 120}
                     fill="hsl(var(--primary))"
                     dataKey="value"
                   >
@@ -170,12 +214,12 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-card border border-border rounded-lg p-2 sm:p-3 shadow-lg">
-                            <p className="font-semibold text-foreground text-xs sm:text-sm">{data.name}</p>
+                          <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+                            <p className="font-semibold text-foreground text-sm">{data.name}</p>
                             <p className="text-xs text-muted-foreground">
                               {data.count} receipt{data.count !== 1 ? 's' : ''}
                             </p>
-                            <p className="text-sm sm:text-lg font-bold text-primary">
+                            <p className="text-lg font-bold text-primary mt-1">
                               {currencySymbol}{data.value.toFixed(2)}
                             </p>
                           </div>
@@ -188,28 +232,28 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
               </ResponsiveContainer>
             </div>
 
-            <div className="space-y-2 sm:space-y-3">
-              <h3 className="font-semibold text-base sm:text-lg mb-2 sm:mb-4">Category Breakdown</h3>
-              <div className="space-y-1.5 sm:space-y-2 max-h-[250px] sm:max-h-[350px] overflow-y-auto pr-1 sm:pr-2">
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
+              <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
                 {categoryData.map((category, index) => (
                   <div
                     key={category.name}
-                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300"
                   >
-                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
-                        className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
+                        className="w-4 h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
                       />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm sm:text-base truncate">{category.name}</p>
+                        <p className="font-medium text-base truncate">{category.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {category.count} receipt{category.count !== 1 ? 's' : ''}
                         </p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 ml-2">
-                      <p className="font-semibold text-foreground text-sm sm:text-base">
+                      <p className="font-semibold text-foreground text-base">
                         {currencySymbol}{category.value.toFixed(2)}
                       </p>
                       <p className="text-xs text-muted-foreground">
