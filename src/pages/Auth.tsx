@@ -17,25 +17,24 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // If a user already has a session (e.g. just returned from Google OAuth),
-    // send them straight to the dashboard.
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (session) {
-        navigate("/dashboard");
-      }
-    };
-
-    checkSession();
-
+    // Set up auth state listener FIRST
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, !!session);
+      
       if (session) {
-        navigate("/dashboard");
+        // Use setTimeout to defer navigation and avoid race conditions on mobile
+        setTimeout(() => {
+          navigate("/dashboard", { replace: true });
+        }, 100);
+      }
+    });
+
+    // THEN check for existing session (e.g. just returned from Google OAuth)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard", { replace: true });
       }
     });
 
@@ -91,15 +90,22 @@ const Auth = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
-        redirectTo: `${window.location.origin}/dashboard`,
-      },
-    });
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+          redirectTo: `${window.location.origin}/auth`,
+          skipBrowserRedirect: false,
+        },
+      });
 
-    if (error) {
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      setLoading(false);
       toast.error(error.message || "Google sign-in failed");
     }
   };
