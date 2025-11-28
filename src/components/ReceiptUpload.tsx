@@ -23,6 +23,7 @@ interface Receipt {
   receipt_date: string;
   merchant_name: string | null;
   amount: number;
+  notes: string | null;
 }
 
 const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
@@ -455,9 +456,14 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                       </Button>
                       <img 
                         src={receipt.image_url} 
-                        alt="Receipt thumbnail" 
+                        alt={receipt.notes?.includes("Migrated from Google Sheets") ? "Migrated receipt" : "Receipt thumbnail"}
                         className="w-full h-24 object-cover rounded-md border border-border group-hover:opacity-80 transition-opacity"
                       />
+                      {receipt.notes?.includes("Migrated from Google Sheets") && (
+                        <div className="absolute top-1 left-1 bg-primary/90 text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-md font-medium">
+                          Migrated
+                        </div>
+                      )}
                       <div className="mt-1">
                         <p className="text-xs font-medium text-foreground truncate">
                           {receipt.merchant_name || "Unknown"}
@@ -472,7 +478,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                     <div className="relative w-full h-full overflow-auto p-6">
                       <img 
                         src={receipt.image_url} 
-                        alt="Receipt full size" 
+                        alt={receipt.notes?.includes("Migrated from Google Sheets") ? "Migrated receipt (full size)" : "Receipt full size"}
                         className="w-full h-auto rounded-lg"
                       />
                       <div className="mt-4 text-sm">
