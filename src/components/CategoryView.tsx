@@ -8,6 +8,7 @@ interface CategoryData {
   name: string;
   value: number;
   count: number;
+  emoji?: string;
 }
 
 interface CategoryViewProps {
@@ -63,6 +64,17 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
   const fetchCategoryData = async () => {
     try {
       setLoading(true);
+      
+      // Fetch categories with emojis
+      const { data: categoriesData } = await supabase
+        .from("categories")
+        .select("name, emoji")
+        .eq("user_id", userId);
+      
+      const categoryEmojiMap = new Map(
+        (categoriesData || []).map(cat => [cat.name, cat.emoji])
+      );
+      
       const { data, error } = await supabase
         .from("receipts")
         .select("amount, category")
@@ -71,7 +83,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
       if (error) throw error;
 
       // Group by category
-      const categoryMap = new Map<string, { total: number; count: number }>();
+      const categoryMap = new Map<string, { total: number; count: number; emoji?: string }>();
 
       (data || []).forEach((receipt) => {
         const category = receipt.category || "Uncategorized";
@@ -79,7 +91,8 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
         const current = categoryMap.get(category) || { total: 0, count: 0 };
         categoryMap.set(category, {
           total: current.total + amount,
-          count: current.count + 1
+          count: current.count + 1,
+          emoji: categoryEmojiMap.get(category) || "📁"
         });
       });
 
@@ -87,7 +100,8 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
         .map(([name, data]) => ({
           name,
           value: data.total,
-          count: data.count
+          count: data.count,
+          emoji: data.emoji
         }))
         .sort((a, b) => b.value - a.value);
 
@@ -241,6 +255,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                     className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300"
                   >
                     <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span className="text-2xl">{category.emoji || "📁"}</span>
                       <div
                         className="w-4 h-4 rounded-full flex-shrink-0"
                         style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
