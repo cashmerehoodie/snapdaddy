@@ -21,12 +21,7 @@ const AccessCode = () => {
     });
   }, []);
 
-  // Redirect to dashboard if user already has access
-  useEffect(() => {
-    if (!loading && (subscribed || has_free_access)) {
-      navigate("/dashboard");
-    }
-  }, [loading, subscribed, has_free_access, navigate]);
+  // Removed auto-redirect - ProtectedRoute handles this
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +49,12 @@ const AccessCode = () => {
 
       if (data.valid) {
         toast.success(data.message);
-        // Refresh subscription status and redirect
+        // Refresh subscription status then let ProtectedRoute handle redirect
         await refresh();
-        navigate("/dashboard", { replace: true });
+        // Small delay to ensure status is updated
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 500);
       } else {
         toast.error(data.message);
       }

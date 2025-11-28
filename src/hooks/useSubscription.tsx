@@ -94,12 +94,7 @@ export const useSubscription = (user: User | null) => {
   };
   useEffect(() => {
     checkSubscription();
-
-    // Check every 60 seconds
-    const interval = setInterval(checkSubscription, 60000);
-
-    return () => clearInterval(interval);
-  }, [user]);
+  }, [user?.id]); // Only re-check when user ID changes, not the whole user object
 
   return { ...status, refresh: checkSubscription };
 };

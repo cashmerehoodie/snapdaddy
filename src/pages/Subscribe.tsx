@@ -39,13 +39,8 @@ const Subscribe = () => {
     }
   }, [checkoutSuccess, user, refresh]);
 
-  useEffect(() => {
-    if (!subLoading && subscribed) {
-      // User has active subscription or VIP access, force redirect
-      console.log("Redirecting to dashboard - subscribed:", subscribed);
-      window.location.href = "/dashboard";
-    }
-  }, [subscribed, subLoading]);
+  // Removed auto-redirect - ProtectedRoute handles this
+  // If user is subscribed, they won't reach this page via ProtectedRoute
 
   const handleSubscribe = async () => {
     if (!user) {
