@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      upload_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          file_url: string | null
+          id: string
+          session_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          file_url?: string | null
+          id?: string
+          session_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          file_url?: string | null
+          id?: string
+          session_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

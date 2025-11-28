@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import PhoneUploadQR from "./PhoneUploadQR";
 
 interface ReceiptUploadProps {
   userId: string;
@@ -334,6 +335,10 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="flex justify-end mb-4">
+          <PhoneUploadQR userId={userId} onUploadComplete={fetchRecentReceipts} />
+        </div>
+        
         <div className="border-2 border-dashed border-border rounded-2xl p-8 text-center transition-colors hover:border-primary/50">
           <input
             id="receipt-upload"
