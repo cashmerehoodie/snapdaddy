@@ -12,13 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken, sheetsId, userId } = await req.json();
+    const { accessToken, sheetsId, userId, sheetName } = await req.json();
 
     if (!accessToken || !sheetsId || !userId) {
       throw new Error("Missing required parameters: accessToken, sheetsId, userId");
     }
 
     console.log("Starting migration for user:", userId);
+    if (sheetName) {
+      console.log("Migrating specific sheet:", sheetName);
+    } else {
+      console.log("Migrating all sheets");
+    }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -49,20 +54,26 @@ serve(async (req) => {
 
     // Process each sheet (each represents a month)
     for (const sheet of sheets) {
-      const sheetName = sheet.properties.title;
+      const currentSheetName = sheet.properties.title;
       
       // Skip system sheets or non-month sheets
-      if (sheetName === "Summary" || sheetName.startsWith("_")) {
-        console.log(`Skipping sheet: ${sheetName}`);
+      if (currentSheetName === "Summary" || currentSheetName.startsWith("_")) {
+        console.log(`Skipping sheet: ${currentSheetName}`);
         continue;
       }
 
-      console.log(`Processing sheet: ${sheetName}`);
+      // If a specific sheet was requested, only process that one
+      if (sheetName && currentSheetName !== sheetName) {
+        console.log(`Skipping sheet (not selected): ${currentSheetName}`);
+        continue;
+      }
+
+      console.log(`Processing sheet: ${currentSheetName}`);
 
       try {
         // Fetch data from this sheet
         const dataResponse = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(sheetName)}`,
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(currentSheetName)}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -71,7 +82,7 @@ serve(async (req) => {
         );
 
         if (!dataResponse.ok) {
-          console.error(`Failed to fetch data from sheet ${sheetName}`);
+          console.error(`Failed to fetch data from sheet ${currentSheetName}`);
           continue;
         }
 
@@ -80,7 +91,7 @@ serve(async (req) => {
 
         // Skip if empty or only header row
         if (rows.length <= 1) {
-          console.log(`Sheet ${sheetName} is empty`);
+          console.log(`Sheet ${currentSheetName} is empty`);
           continue;
         }
 
@@ -88,7 +99,7 @@ serve(async (req) => {
         const headerRow = rows[0];
         const dataRows = rows.slice(1);
 
-        console.log(`Found ${dataRows.length} rows in ${sheetName}`);
+        console.log(`Found ${dataRows.length} rows in ${currentSheetName}`);
 
         for (const row of dataRows) {
           if (!row || row.length === 0) continue;
@@ -157,7 +168,7 @@ serve(async (req) => {
                 category: category,
                 google_drive_id: googleDriveId,
                 image_url: driveLink || `https://placeholder.com/receipt-${Date.now()}`,
-                notes: `Migrated from Google Sheets: ${sheetName}`,
+                notes: `Migrated from Google Sheets: ${currentSheetName}`,
               });
 
             if (insertError) {
@@ -174,9 +185,9 @@ serve(async (req) => {
           }
         }
       } catch (sheetError) {
-        console.error(`Error processing sheet ${sheetName}:`, sheetError);
+        console.error(`Error processing sheet ${currentSheetName}:`, sheetError);
         const errorMsg = sheetError instanceof Error ? sheetError.message : String(sheetError);
-        errors.push(`Sheet ${sheetName}: ${errorMsg}`);
+        errors.push(`Sheet ${currentSheetName}: ${errorMsg}`);
       }
     }
 
