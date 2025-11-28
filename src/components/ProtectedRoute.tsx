@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const { subscribed, loading: subLoading } = useSubscription(user);
+  const { subscribed, loading: subLoading, subscription_status, has_free_access } = useSubscription(user);
   const isVipByEmail = user?.email === "lennonward0161@gmail.com";
 
   useEffect(() => {
@@ -45,16 +45,30 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Give direct access to the specified VIP email without further checks
   if (isVipByEmail) {
+    console.log("ProtectedRoute: VIP email access granted", { email: user.email });
     return <>{children}</>;
   }
 
-  if (!subscribed) {
+  const hasAccess =
+    subscribed ||
+    has_free_access ||
+    subscription_status === "active" ||
+    subscription_status === "trialing";
+
+  console.log("ProtectedRoute: access check", {
+    subscribed,
+    subscription_status,
+    has_free_access,
+    subLoading,
+    hasAccess,
+  });
+
+  if (!hasAccess) {
     console.log("ProtectedRoute: No subscription, redirecting to subscribe");
-    console.log("ProtectedRoute: subscribed =", subscribed, "subLoading =", subLoading);
     return <Navigate to="/subscribe" replace />;
   }
 
-  console.log("ProtectedRoute: Access granted - subscribed =", subscribed);
+  console.log("ProtectedRoute: Access granted");
   return <>{children}</>;
 };
 
