@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarDays, DollarSign, Trash2, CheckSquare, X, ArrowLeft } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { formatDate } from "@/lib/dateUtils";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -613,7 +614,7 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(receipt.receipt_date), "MMM dd, yyyy")}
+                    {formatDate(receipt.receipt_date, "medium")}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">

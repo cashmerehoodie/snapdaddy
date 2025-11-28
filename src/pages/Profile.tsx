@@ -46,6 +46,10 @@ const Profile = () => {
     return localStorage.getItem("currency") || "USD";
   });
 
+  const [dateFormat, setDateFormat] = useState<string>(() => {
+    return localStorage.getItem("dateFormat") || "DD/MM/YYYY";
+  });
+
   // Image cropping states
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -197,6 +201,12 @@ const Profile = () => {
     setCurrency(value);
     localStorage.setItem("currency", value);
     toast.success(`Currency changed to ${value}`);
+  };
+
+  const handleDateFormatChange = (value: string) => {
+    setDateFormat(value);
+    localStorage.setItem("dateFormat", value);
+    toast.success(`Date format changed to ${value}`);
   };
 
   const handleUsernameUpdate = async () => {
@@ -365,6 +375,24 @@ const Profile = () => {
                   <SelectItem value="JPY">¥ JPY - Japanese Yen</SelectItem>
                   <SelectItem value="AUD">A$ AUD - Australian Dollar</SelectItem>
                   <SelectItem value="CAD">C$ CAD - Canadian Dollar</SelectItem>
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 shadow-lg">
+            <CardHeader>
+              <CardTitle>Date Format</CardTitle>
+              <CardDescription>Choose how dates are displayed throughout the app</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Select value={dateFormat} onValueChange={handleDateFormatChange}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="DD/MM/YYYY">DD/MM/YYYY (28/11/2025) - UK/European</SelectItem>
+                  <SelectItem value="MM/DD/YYYY">MM/DD/YYYY (11/28/2025) - US</SelectItem>
                 </SelectContent>
               </Select>
             </CardContent>

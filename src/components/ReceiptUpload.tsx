@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Upload, FileText, Loader2, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/dateUtils";
 import {
   Dialog,
   DialogContent,
@@ -483,7 +484,7 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                       />
                       <div className="mt-4 text-sm">
                         <p className="font-semibold">{receipt.merchant_name || "Unknown Merchant"}</p>
-                        <p className="text-muted-foreground">Date: {format(new Date(receipt.receipt_date), "dd/MM/yy")}</p>
+                        <p className="text-muted-foreground">Date: {formatDate(receipt.receipt_date, "short")}</p>
                         <p className="text-muted-foreground">Amount: {currencySymbol}{Number(receipt.amount).toFixed(2)}</p>
                       </div>
                     </div>
