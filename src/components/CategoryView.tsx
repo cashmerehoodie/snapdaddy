@@ -175,11 +175,22 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
     }
   };
 
-  const openEditDialog = (category: Category) => {
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setNewCategoryEmoji(category.emoji);
-    setIsCreating(false);
+  const openEditDialog = (categoryName: string) => {
+    const category = categories.find((c) => c.name === categoryName) || null;
+
+    if (category) {
+      setEditingCategory(category);
+      setNewCategoryName(category.name);
+      setNewCategoryEmoji(category.emoji);
+      setIsCreating(false);
+    } else {
+      // No existing category mapping yet – create one prefilled with this name
+      setEditingCategory(null);
+      setNewCategoryName(categoryName);
+      setNewCategoryEmoji("📁");
+      setIsCreating(true);
+    }
+
     setIsDialogOpen(true);
   };
 
@@ -395,16 +406,14 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="font-medium text-base truncate">{category.name}</p>
-                            {categoryObj && (
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="h-5 w-5 hover:bg-primary/10"
-                                onClick={() => openEditDialog(categoryObj)}
-                              >
-                                <Edit2 className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
-                              </Button>
-                            )}
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5 hover:bg-primary/10 flex-shrink-0"
+                              onClick={() => openEditDialog(category.name)}
+                            >
+                              <Edit2 className="w-3.5 h-3.5 text-muted-foreground hover:text-primary" />
+                            </Button>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {category.count} receipt{category.count !== 1 ? 's' : ''}
