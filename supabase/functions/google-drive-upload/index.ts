@@ -36,6 +36,12 @@ serve(async (req) => {
       }
     );
 
+    if (!folderSearchResponse.ok) {
+      const errorText = await folderSearchResponse.text();
+      console.error("Folder search error:", errorText);
+      throw new Error(`Failed to search for Drive folder: ${folderSearchResponse.status}`);
+    }
+
     const folderSearchData = await folderSearchResponse.json();
     let folderId: string;
     let folderLink: string;
@@ -63,7 +69,18 @@ serve(async (req) => {
         }
       );
 
+      if (!createFolderResponse.ok) {
+        const errorText = await createFolderResponse.text();
+        console.error("Folder creation error:", errorText);
+        throw new Error(`Failed to create Drive folder: ${createFolderResponse.status}`);
+      }
+
       const folderData = await createFolderResponse.json();
+      
+      if (!folderData.id) {
+        throw new Error("Folder created but no ID returned");
+      }
+      
       folderId = folderData.id;
       folderLink = folderData.webViewLink || `https://drive.google.com/drive/folders/${folderId}`;
       console.log("Created folder:", folderId, "at", folderLink);

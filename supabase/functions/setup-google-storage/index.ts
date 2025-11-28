@@ -32,6 +32,12 @@ serve(async (req) => {
       }
     );
 
+    if (!folderSearchResponse.ok) {
+      const errorText = await folderSearchResponse.text();
+      console.error("Folder search error:", errorText);
+      throw new Error(`Failed to search for folder: ${folderSearchResponse.status} - ${errorText}`);
+    }
+
     const folderSearchData = await folderSearchResponse.json();
     let folderId: string;
 
@@ -56,7 +62,9 @@ serve(async (req) => {
       );
 
       if (!createFolderResponse.ok) {
-        throw new Error(`Failed to create folder: ${createFolderResponse.status}`);
+        const errorText = await createFolderResponse.text();
+        console.error("Folder creation error:", errorText);
+        throw new Error(`Failed to create folder: ${createFolderResponse.status} - ${errorText}`);
       }
 
       const folderData = await createFolderResponse.json();
