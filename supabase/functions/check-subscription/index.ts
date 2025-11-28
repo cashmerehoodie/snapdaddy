@@ -107,7 +107,7 @@ serve(async (req) => {
 
     const subscription = subscriptions.data[0];
     const status = subscription.status;
-    const isActive = status === "active" || status === "trialing";
+    const isActive = ['active', 'trialing'].includes(status);
     const subscriptionEnd = subscription.current_period_end 
       ? new Date(subscription.current_period_end * 1000).toISOString()
       : null;

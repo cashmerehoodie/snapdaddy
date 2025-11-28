@@ -52,8 +52,7 @@ export const useSubscription = (user: User | null) => {
 
         const isSubscribed =
           profile.has_free_access ||
-          profile.subscription_status === "active" ||
-          profile.subscription_status === "trialing";
+          ['active', 'trialing'].includes(profile.subscription_status || '');
 
         setStatus({
           subscribed: !!isSubscribed,

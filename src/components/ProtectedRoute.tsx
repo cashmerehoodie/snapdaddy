@@ -52,8 +52,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const hasAccess =
     subscribed ||
     has_free_access ||
-    subscription_status === "active" ||
-    subscription_status === "trialing";
+    ['active', 'trialing'].includes(subscription_status || '');
 
   console.log("ProtectedRoute: access check", {
     subscribed,
