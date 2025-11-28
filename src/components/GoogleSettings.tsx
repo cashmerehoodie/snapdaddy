@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -197,18 +198,24 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Settings className="w-4 h-4" />
-          <span className="hidden sm:inline">Google Settings</span>
+          <span className="hidden sm:inline">How to Set Up</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Google Integration Settings</DialogTitle>
+          <DialogTitle>How to Set Up</DialogTitle>
           <DialogDescription>
-            Configure your Google Drive and Sheets integration
+            Choose your preferred integration method
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <Tabs defaultValue="google" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="google">Google</TabsTrigger>
+            <TabsTrigger value="excel">Excel / OneDrive</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="google" className="space-y-4 py-4">
           {/* Connection Status */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
@@ -334,13 +341,28 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
           </div>
           </>
           )}
-        </div>
 
-        <DialogFooter>
-          <Button onClick={handleSave} disabled={saving || !sheetsId || !driveFolder}>
-            {saving ? "Saving..." : "Save Settings"}
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button onClick={handleSave} disabled={saving || !sheetsId || !driveFolder}>
+              {saving ? "Saving..." : "Save Settings"}
+            </Button>
+          </DialogFooter>
+          </TabsContent>
+
+          <TabsContent value="excel" className="space-y-4 py-4">
+            <div className="p-8 text-center border rounded-lg bg-muted/30">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="font-semibold mb-2">Excel / OneDrive Integration</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Coming soon! Export your receipts to Excel and OneDrive.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                This feature will allow you to sync your receipt data with Microsoft Excel 
+                and store receipt images in OneDrive.
+              </p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
