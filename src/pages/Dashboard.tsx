@@ -74,26 +74,35 @@ const Dashboard = () => {
         console.error("Sign out error:", error);
       }
       
-      // Clear local state
+      // Clear Supabase auth from localStorage explicitly (safety for preview/new tabs)
+      try {
+        localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
+      } catch (storageError) {
+        console.warn("Could not clear local auth token:", storageError);
+      }
+      
+      // Clear local React state
       setUser(null);
       setSession(null);
       
-      // Force a full page reload to clear all cached state
       toast.success("Signed out successfully");
       
-      // Use setTimeout to ensure toast shows before redirect
+      // Force a full page reload to clear all cached state
       setTimeout(() => {
         window.location.href = "/auth";
-      }, 500);
+      }, 300);
     } catch (error: any) {
       console.error("Sign out catch error:", error);
-      // Force redirect anyway
+      try {
+        localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
+      } catch {}
+      setUser(null);
+      setSession(null);
       setTimeout(() => {
         window.location.href = "/auth";
-      }, 500);
+      }, 300);
     }
   };
-
   const getCurrencySymbol = (curr: string) => {
     const symbols: Record<string, string> = {
       USD: "$",
