@@ -377,25 +377,14 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-lg">Category Breakdown</h3>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={openCreateDialog}
-                  className="gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Category
-                </Button>
-              </div>
+              <h3 className="font-semibold text-lg mb-4">Category Breakdown</h3>
               <div className="space-y-2 max-h-[350px] overflow-y-auto pr-2">
                 {categoryData.map((category, index) => {
                   const categoryObj = categories.find(c => c.name === category.name);
                   return (
                     <div
                       key={category.name}
-                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300 group"
+                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary hover:scale-[1.02] transition-all duration-300"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <span className="text-2xl">{category.emoji || "📁"}</span>
@@ -410,7 +399,7 @@ const CategoryView = ({ userId, currencySymbol }: CategoryViewProps) => {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="h-6 w-6"
                                 onClick={() => openEditDialog(categoryObj)}
                               >
                                 <Edit2 className="w-3 h-3" />
