@@ -51,11 +51,16 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          free_access_code: string | null
           google_drive_folder: string | null
           google_provider_token: string | null
           google_refresh_token: string | null
           google_sheets_id: string | null
+          has_free_access: boolean | null
           id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_status: string | null
           updated_at: string
           user_id: string
           username: string | null
@@ -63,11 +68,16 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          free_access_code?: string | null
           google_drive_folder?: string | null
           google_provider_token?: string | null
           google_refresh_token?: string | null
           google_sheets_id?: string | null
+          has_free_access?: boolean | null
           id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id: string
           username?: string | null
@@ -75,11 +85,16 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          free_access_code?: string | null
           google_drive_folder?: string | null
           google_provider_token?: string | null
           google_refresh_token?: string | null
           google_sheets_id?: string | null
+          has_free_access?: boolean | null
           id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string
           user_id?: string
           username?: string | null
@@ -158,6 +173,36 @@ export type Database = {
           session_id?: string
           status?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vip_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          used_at?: string | null
+          used_by?: string | null
         }
         Relationships: []
       }
