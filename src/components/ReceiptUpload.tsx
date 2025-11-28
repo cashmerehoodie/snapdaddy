@@ -35,6 +35,43 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
   useEffect(() => {
     fetchRecentReceipts();
     fetchUsername();
+
+    // Set up realtime subscription for new receipts
+    const channel = supabase
+      .channel('receipts-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'receipts',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('New receipt inserted:', payload);
+          // Add the new receipt to the list
+          setTodayReceipts((current) => [payload.new as Receipt, ...current].slice(0, 6));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'receipts',
+          filter: `user_id=eq.${userId}`
+        },
+        (payload) => {
+          console.log('Receipt deleted:', payload);
+          // Remove the deleted receipt from the list
+          setTodayReceipts((current) => current.filter(r => r.id !== payload.old.id));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userId]);
 
   const fetchUsername = async () => {
