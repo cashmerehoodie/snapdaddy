@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import PhoneUploadQR from "./PhoneUploadQR";
+import ReceiptCategoryEditor from "./ReceiptCategoryEditor";
 
 interface ReceiptUploadProps {
   userId: string;
@@ -25,6 +26,7 @@ interface Receipt {
   merchant_name: string | null;
   amount: number;
   notes: string | null;
+  category: string | null;
 }
 
 const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
@@ -311,7 +313,14 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
         toast.success(`Receipt ${i + 1} processed successfully!`, { id: `upload-${i}` });
       }
       
-      toast.success(`All ${successCount} receipts processed!`);
+      // Show success animation
+      toast.success(
+        <div className="flex items-center gap-2">
+          <span className="text-2xl animate-bounce">🎉</span>
+          <span>All {successCount} receipts processed!</span>
+        </div>,
+        { duration: 3000 }
+      );
       
       // Fetch recent receipts
       await fetchRecentReceipts();
@@ -475,18 +484,39 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                       </div>
                     </div>
                   </DialogTrigger>
-                  <DialogContent className="max-w-3xl max-h-[90vh] p-0">
-                    <div className="relative w-full h-full overflow-auto p-6">
+                  <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
+                    <div className="p-4">
                       <img 
                         src={receipt.image_url} 
                         alt={receipt.notes?.includes("Migrated from Google Sheets") ? "Migrated receipt (full size)" : "Receipt full size"}
-                        className="w-full h-auto rounded-lg"
+                        className="w-full h-auto rounded-lg mb-4"
                       />
-                      <div className="mt-4 text-sm">
-                        <p className="font-semibold">{receipt.merchant_name || "Unknown Merchant"}</p>
-                        <p className="text-muted-foreground">Date: {formatDate(receipt.receipt_date, "short")}</p>
-                        <p className="text-muted-foreground">Amount: {currencySymbol}{Number(receipt.amount).toFixed(2)}</p>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <p className="text-muted-foreground">Merchant</p>
+                          <p className="font-semibold text-lg">{receipt.merchant_name || "Unknown Merchant"}</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-muted-foreground">Date</p>
+                            <p className="font-medium">{formatDate(receipt.receipt_date, "short")}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Amount</p>
+                            <p className="font-medium">{currencySymbol}{Number(receipt.amount).toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Category</p>
+                          <p className="font-medium">{receipt.category || "Uncategorized"}</p>
+                        </div>
                       </div>
+                      <ReceiptCategoryEditor 
+                        receiptId={receipt.id}
+                        currentCategory={receipt.category}
+                        userId={userId}
+                        onUpdate={fetchRecentReceipts}
+                      />
                     </div>
                   </DialogContent>
                 </Dialog>
