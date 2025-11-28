@@ -67,26 +67,30 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
+      // Sign out with global scope to clear all sessions
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
         console.error("Sign out error:", error);
-        // Even if there's an error, clear local state and redirect
       }
       
       // Clear local state
       setUser(null);
       setSession(null);
       
+      // Force a full page reload to clear all cached state
       toast.success("Signed out successfully");
-      navigate("/auth");
+      
+      // Use setTimeout to ensure toast shows before redirect
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 500);
     } catch (error: any) {
-      console.error("Sign out error:", error);
-      // Clear state and redirect anyway
-      setUser(null);
-      setSession(null);
-      toast.success("Signed out");
-      navigate("/auth");
+      console.error("Sign out catch error:", error);
+      // Force redirect anyway
+      setTimeout(() => {
+        window.location.href = "/auth";
+      }, 500);
     }
   };
 
