@@ -12,16 +12,54 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Authenticate the user from the Authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "No authorization header provided" }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Authentication failed" }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
     const { imageUrl, userId } = await req.json();
 
     if (!imageUrl || !userId) {
       throw new Error("Missing required parameters");
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    // Validate that the authenticated user matches the requested userId
+    if (user.id !== userId) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Cannot process receipts for other users" }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    console.log(`Processing receipt for authenticated user ${userId}`);
 
     // Call Lovable AI to process the receipt image
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
