@@ -25,7 +25,10 @@ export const useSubscription = (user: User | null) => {
   const isActuallyLoading = status.loading || (user?.id != null && status.checkedForUserId !== user.id);
 
   const checkSubscription = async () => {
+    console.log("[useSubscription] checkSubscription called", { userId: user?.id });
+    
     if (!user) {
+      console.log("[useSubscription] No user, marking as not subscribed");
       setStatus({
         subscribed: false,
         subscription_status: "inactive",
@@ -37,6 +40,7 @@ export const useSubscription = (user: User | null) => {
 
     // When we do have a user, always go into a loading state before checks
     setStatus((prev) => ({ ...prev, loading: true }));
+    console.log("[useSubscription] Starting subscription check for user:", user.id);
 
     const fallbackFromProfile = async () => {
       try {
@@ -84,31 +88,36 @@ export const useSubscription = (user: User | null) => {
     };
 
     try {
-      // Add timeout for mobile - if function takes >5s, use fallback
+      console.log("[useSubscription] Attempting edge function check...");
+      
+      // Reduce timeout to 3s for faster fallback on mobile
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Subscription check timeout')), 5000)
+        setTimeout(() => {
+          console.log("[useSubscription] Edge function timeout after 3s");
+          reject(new Error('Subscription check timeout'));
+        }, 3000)
       );
       
       const checkPromise = supabase.functions.invoke("check-subscription");
       
       const { data, error } = await Promise.race([checkPromise, timeoutPromise]) as any;
 
-      console.log("useSubscription: check-subscription response:", { data, error });
+      console.log("[useSubscription] Edge function response:", { data, error });
 
       if (error || !data) {
-        console.error("Error checking subscription via function, using fallback:", error);
+        console.error("[useSubscription] Error or no data, using fallback:", error);
         await fallbackFromProfile();
         return;
       }
 
-      console.log("useSubscription: Setting status to:", { ...data, loading: false });
+      console.log("[useSubscription] Success! Setting status:", { ...data });
       setStatus({
         ...data,
         loading: false,
         checkedForUserId: user.id,
       });
     } catch (error) {
-      console.error("Error checking subscription via function (timeout or error), using fallback:", error);
+      console.error("[useSubscription] Exception caught, using fallback:", error);
       await fallbackFromProfile();
     }
   };
