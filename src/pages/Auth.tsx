@@ -24,16 +24,20 @@ const Auth = () => {
       console.log("Auth state changed:", event, !!session);
       
       if (session) {
-        // Use setTimeout to defer navigation and avoid race conditions on mobile
+        console.log("Session detected, navigating to dashboard");
+        // Use longer delay on mobile for better compatibility
         setTimeout(() => {
+          console.log("Executing navigation to dashboard");
           navigate("/dashboard", { replace: true });
-        }, 100);
+        }, 200);
       }
     });
 
     // THEN check for existing session (e.g. just returned from Google OAuth)
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Existing session check:", !!session);
       if (session) {
+        console.log("Existing session found, navigating to dashboard");
         navigate("/dashboard", { replace: true });
       }
     });

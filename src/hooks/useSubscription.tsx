@@ -84,7 +84,14 @@ export const useSubscription = (user: User | null) => {
     };
 
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
+      // Add timeout for mobile - if function takes >5s, use fallback
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Subscription check timeout')), 5000)
+      );
+      
+      const checkPromise = supabase.functions.invoke("check-subscription");
+      
+      const { data, error } = await Promise.race([checkPromise, timeoutPromise]) as any;
 
       console.log("useSubscription: check-subscription response:", { data, error });
 
@@ -101,7 +108,7 @@ export const useSubscription = (user: User | null) => {
         checkedForUserId: user.id,
       });
     } catch (error) {
-      console.error("Error checking subscription via function, using fallback:", error);
+      console.error("Error checking subscription via function (timeout or error), using fallback:", error);
       await fallbackFromProfile();
     }
   };

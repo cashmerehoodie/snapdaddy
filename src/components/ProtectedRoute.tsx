@@ -32,8 +32,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (authLoading || subLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-primary-light/10">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-muted-foreground text-sm">
+            {authLoading ? "Checking authentication..." : "Verifying subscription..."}
+          </p>
+        </div>
       </div>
     );
   }
