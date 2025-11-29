@@ -1,56 +1,37 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Session } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Receipt, Upload, BarChart2, Calendar, LogOut, FolderSync } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Receipt, LogOut, Upload } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import ReceiptUpload from "@/components/ReceiptUpload";
 import MonthlyView from "@/components/MonthlyView";
 import YearlyView from "@/components/YearlyView";
 import CategoryView from "@/components/CategoryView";
-import MigrateData from "@/components/MigrateData";
-import GoogleSettings from "@/components/GoogleSettings";
-import Onboarding from "@/components/Onboarding";
 import DashboardGreeting from "@/components/DashboardGreeting";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Onboarding from "@/components/Onboarding";
+import GoogleSettings from "@/components/GoogleSettings";
+import MigrateData from "@/components/MigrateData";
 
 const Dashboard = () => {
+  console.log("[Dashboard] Component mounting");
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { user, loading: authLoading } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [currency] = useState<string>(() => {
+  const [currency] = useState(() => {
     return localStorage.getItem("currency") || "USD";
   });
 
   useEffect(() => {
-    // Get session immediately - ProtectedRoute already verified auth
-    const initializeUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setSession(session);
-        setUser(session.user);
-        fetchProfileAvatar(session.user.id);
-      }
-    };
-
-    initializeUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session) {
-          fetchProfileAvatar(session.user.id);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, []);
+    console.log("[Dashboard] User effect triggered:", !!user);
+    if (user) {
+      fetchProfileAvatar(user.id);
+    }
+  }, [user]);
 
   const fetchProfileAvatar = async (userId: string) => {
     const { data } = await supabase
@@ -66,27 +47,20 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     try {
-      // Sign out with global scope to clear all sessions
       const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
         console.error("Sign out error:", error);
       }
       
-      // Clear Supabase auth from localStorage explicitly (safety for preview/new tabs)
       try {
         localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
       } catch (storageError) {
         console.warn("Could not clear local auth token:", storageError);
       }
       
-      // Clear local React state
-      setUser(null);
-      setSession(null);
-      
       toast.success("Signed out successfully");
       
-      // Force a full page reload to clear all cached state
       setTimeout(() => {
         window.location.href = "/auth";
       }, 300);
@@ -95,13 +69,12 @@ const Dashboard = () => {
       try {
         localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
       } catch {}
-      setUser(null);
-      setSession(null);
       setTimeout(() => {
         window.location.href = "/auth";
       }, 300);
     }
   };
+
   const getCurrencySymbol = (curr: string) => {
     const symbols: Record<string, string> = {
       USD: "$",
@@ -114,12 +87,37 @@ const Dashboard = () => {
     return symbols[curr] || "$";
   };
 
-  // ProtectedRoute already verified auth - render immediately with fallback
-  const displayUser = user || { id: '', email: '' };
+  console.log("[Dashboard] Rendering - authLoading:", authLoading, "user:", !!user);
+
+  // Show loading skeleton while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
+        <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-8 h-8 rounded" />
+              <Skeleton className="w-24 h-6" />
+            </div>
+            <Skeleton className="w-20 h-10 rounded" />
+          </div>
+        </header>
+        <main className="container mx-auto px-4 py-8">
+          <Skeleton className="w-full h-32 mb-6 rounded-lg" />
+          <Skeleton className="w-full h-96 rounded-lg" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!user) {
+    console.log("[Dashboard] No user after loading - this shouldn't happen");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
-      {user && <Onboarding userId={user.id} />}
+      <Onboarding userId={user.id} />
       
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50 animate-slide-up">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -136,18 +134,18 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {user && <GoogleSettings userId={user.id} />}
+            <GoogleSettings userId={user.id} />
             
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate("/profile")}
-              className="gap-2 hover:scale-105 transition-all duration-300"
+              className="gap-2 hover:bg-accent transition-colors duration-300"
             >
               <Avatar className="w-8 h-8">
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback className="text-xs">
-                  {displayUser.email?.[0]?.toUpperCase() || "U"}
+                  {user.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden sm:inline">Profile</span>
@@ -167,50 +165,50 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {user && <DashboardGreeting userId={user.id} />}
+        <DashboardGreeting userId={user.id} />
         
         <Tabs defaultValue="upload" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 max-w-4xl mx-auto bg-secondary/50 backdrop-blur-sm p-1 h-auto">
-            <TabsTrigger value="upload" className="gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+            <TabsTrigger value="upload" className="flex items-center gap-2 py-3">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline">Upload</span>
             </TabsTrigger>
-            <TabsTrigger value="categories" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+            <TabsTrigger value="categories" className="flex items-center gap-2 py-3">
+              <BarChart2 className="w-4 h-4" />
               <span className="hidden sm:inline">Categories</span>
-              <span className="sm:hidden">Cat.</span>
             </TabsTrigger>
-            <TabsTrigger value="monthly" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+            <TabsTrigger value="monthly" className="flex items-center gap-2 py-3">
+              <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Monthly</span>
-              <span className="sm:hidden">Mon.</span>
             </TabsTrigger>
-            <TabsTrigger value="yearly" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+            <TabsTrigger value="yearly" className="flex items-center gap-2 py-3">
+              <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Yearly</span>
-              <span className="sm:hidden">Year</span>
             </TabsTrigger>
-            <TabsTrigger value="migrate" className="py-3 data-[state=active]:bg-background data-[state=active]:shadow-md transition-all duration-300">
+            <TabsTrigger value="migrate" className="flex items-center gap-2 py-3">
+              <FolderSync className="w-4 h-4" />
               <span className="hidden sm:inline">Migrate</span>
-              <span className="sm:hidden">Mig.</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
-            {user && <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
+            <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="categories">
-            {user && <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
+            <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="monthly">
-            {user && <MonthlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
+            <MonthlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="yearly">
-            {user && <YearlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
+            <YearlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
           </TabsContent>
 
           <TabsContent value="migrate">
-            {user && <MigrateData userId={user.id} />}
+            <MigrateData userId={user.id} />
           </TabsContent>
         </Tabs>
       </main>

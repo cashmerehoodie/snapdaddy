@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +24,11 @@ import {
 } from "@/components/ui/select";
 
 const Profile = () => {
+  console.log("[Profile] Component mounting");
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
+  const [profileLoading, setProfileLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   
@@ -62,21 +63,18 @@ const Profile = () => {
   const [showCropDialog, setShowCropDialog] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
+    console.log("[Profile] User effect triggered:", !!user);
+    const fetchProfile = async () => {
+      if (!user) {
+        setProfileLoading(false);
         return;
       }
-      
-      setUser(session.user);
       
       // Fetch profile data
       const { data: profileData } = await supabase
         .from("profiles")
         .select("*")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .maybeSingle();
       
       if (profileData) {
@@ -86,11 +84,11 @@ const Profile = () => {
         });
       }
       
-      setLoading(false);
+      setProfileLoading(false);
     };
 
-    fetchUser();
-  }, [navigate]);
+    fetchProfile();
+  }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -296,7 +294,9 @@ const Profile = () => {
     }
   };
 
-  if (loading) {
+  console.log("[Profile] Rendering - authLoading:", authLoading, "profileLoading:", profileLoading, "user:", !!user);
+
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex items-center gap-3">
@@ -307,7 +307,11 @@ const Profile = () => {
     );
   }
 
-  if (!user) return null;
+  if (!user) {
+    console.log("[Profile] No user after loading - redirecting to auth");
+    navigate("/auth");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10 py-8 animate-fade-in">
