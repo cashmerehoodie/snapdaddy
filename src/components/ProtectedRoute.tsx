@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useSubscription } from "@/hooks/useSubscription";
+import type { User } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -12,13 +13,20 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
+  const {
+    subscribed,
+    subscription_status,
+    has_free_access,
+    loading: subLoading,
+  } = useSubscription(user);
+
   useEffect(() => {
     console.log("[ProtectedRoute] Initializing auth check");
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("[ProtectedRoute] Auth state change:", _event, !!session);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[ProtectedRoute] Auth state change:", event, !!session);
       setUser(session?.user ?? null);
       setAuthLoading(false);
     });
@@ -32,12 +40,19 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (authLoading) {
+  const hasAccess =
+    subscribed ||
+    has_free_access ||
+    ["active", "trialing"].includes(subscription_status || "");
+
+  if (authLoading || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary to-primary-light/10">
         <div className="text-center space-y-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-muted-foreground text-sm">Checking authentication...</p>
+          <p className="text-muted-foreground text-sm">
+            {authLoading ? "Checking authentication..." : "Checking subscription..."}
+          </p>
         </div>
       </div>
     );
@@ -48,7 +63,16 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  console.log("[ProtectedRoute] Authenticated, rendering children");
+  if (!hasAccess) {
+    console.log("[ProtectedRoute] No subscription, redirecting to /subscribe", {
+      subscribed,
+      subscription_status,
+      has_free_access,
+    });
+    return <Navigate to="/subscribe" replace />;
+  }
+
+  console.log("[ProtectedRoute] Access granted, rendering children");
   return <>{children}</>;
 };
 
