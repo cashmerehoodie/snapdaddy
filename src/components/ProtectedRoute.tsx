@@ -13,7 +13,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const { subscribed, loading: subLoading, subscription_status, has_free_access } = useSubscription(user);
-  const isVipByEmail = user?.email === "lennonward0161@gmail.com";
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -41,12 +40,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // Give direct access to the specified VIP email without further checks
-  if (isVipByEmail) {
-    console.log("ProtectedRoute: VIP email access granted", { email: user.email });
-    return <>{children}</>;
   }
 
   const hasAccess =
