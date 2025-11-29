@@ -14,9 +14,8 @@ import MigrateData from "@/components/MigrateData";
 import GoogleSettings from "@/components/GoogleSettings";
 import Onboarding from "@/components/Onboarding";
 import DashboardGreeting from "@/components/DashboardGreeting";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import { useSubscription } from "@/hooks/useSubscription";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -27,6 +26,8 @@ const Dashboard = () => {
   const [currency] = useState<string>(() => {
     return localStorage.getItem("currency") || "USD";
   });
+
+  const { subscribed, subscription_status, has_free_access, loading: subLoading } = useSubscription(user);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -118,26 +119,22 @@ const Dashboard = () => {
     return symbols[curr] || "$";
   };
 
-  if (loading) {
+  if (loading || subLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex items-center gap-3">
           <Receipt className="w-8 h-8 text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">
+            {loading ? "Checking authentication..." : "Checking subscription..."}
+          </p>
         </div>
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse flex items-center gap-3">
-          <Receipt className="w-8 h-8 text-primary" />
-          <p className="text-muted-foreground">Redirecting to sign in...</p>
-        </div>
-      </div>
-    );
+    navigate("/auth");
+    return null;
   }
 
   return (
