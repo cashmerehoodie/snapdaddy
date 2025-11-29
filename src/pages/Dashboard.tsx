@@ -26,15 +26,17 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Fast session check - no loading state since ProtectedRoute already handled auth
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
+    // Get session immediately - ProtectedRoute already verified auth
+    const initializeUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        setSession(session);
+        setUser(session.user);
         fetchProfileAvatar(session.user.id);
       }
-    });
+    };
+
+    initializeUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -112,21 +114,12 @@ const Dashboard = () => {
     return symbols[curr] || "$";
   };
 
-  // No need for separate loading/redirect - ProtectedRoute handles this
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse flex items-center gap-3">
-          <Receipt className="w-8 h-8 text-primary" />
-          <p className="text-muted-foreground">Loading user data...</p>
-        </div>
-      </div>
-    );
-  }
+  // ProtectedRoute already verified auth - render immediately with fallback
+  const displayUser = user || { id: '', email: '' };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/10">
-      <Onboarding userId={user.id} />
+      {user && <Onboarding userId={user.id} />}
       
       <header className="border-b border-border/50 bg-background/80 backdrop-blur-sm sticky top-0 z-50 animate-slide-up">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -143,7 +136,7 @@ const Dashboard = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <GoogleSettings userId={user.id} />
+            {user && <GoogleSettings userId={user.id} />}
             
             <Button
               variant="ghost"
@@ -154,7 +147,7 @@ const Dashboard = () => {
               <Avatar className="w-8 h-8">
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback className="text-xs">
-                  {user.email?.[0]?.toUpperCase() || "U"}
+                  {displayUser.email?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <span className="hidden sm:inline">Profile</span>
@@ -174,7 +167,7 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        <DashboardGreeting userId={user.id} />
+        {user && <DashboardGreeting userId={user.id} />}
         
         <Tabs defaultValue="upload" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 max-w-4xl mx-auto bg-secondary/50 backdrop-blur-sm p-1 h-auto">
@@ -201,23 +194,23 @@ const Dashboard = () => {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6">
-            <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
+            {user && <ReceiptUpload userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
           </TabsContent>
 
           <TabsContent value="categories">
-            <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
+            {user && <CategoryView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
           </TabsContent>
 
           <TabsContent value="monthly">
-            <MonthlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
+            {user && <MonthlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
           </TabsContent>
 
           <TabsContent value="yearly">
-            <YearlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />
+            {user && <YearlyView userId={user.id} currencySymbol={getCurrencySymbol(currency)} />}
           </TabsContent>
 
           <TabsContent value="migrate">
-            <MigrateData userId={user.id} />
+            {user && <MigrateData userId={user.id} />}
           </TabsContent>
         </Tabs>
       </main>
