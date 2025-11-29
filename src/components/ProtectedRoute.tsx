@@ -72,7 +72,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // If max wait reached, allow access and let them see subscribe page if needed
   const hasAccess =
-    maxWaitReached ||
     subscribed ||
     has_free_access ||
     ['active', 'trialing'].includes(subscription_status || '');
