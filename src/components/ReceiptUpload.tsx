@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import PhoneUploadQR from "./PhoneUploadQR";
 import ReceiptCategoryEditor from "./ReceiptCategoryEditor";
+import { ReceiptImage } from "./ReceiptImage";
 
 interface ReceiptUploadProps {
   userId: string;
@@ -216,18 +217,13 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from("receipts")
-          .getPublicUrl(fileName);
-
         toast.success(`Receipt ${i + 1} uploaded! Processing with AI...`, { id: `upload-${i}` });
 
-        // Process with AI
+        // Process with AI - pass the file path instead of URL
         const { data: functionData, error: functionError } = await supabase.functions.invoke(
           "process-receipt",
           {
-            body: { imageUrl: publicUrl, userId },
+            body: { filePath: fileName, userId },
           }
         );
 
@@ -243,6 +239,11 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
           .select("google_sheets_id, google_drive_folder")
           .eq("user_id", userId)
           .maybeSingle();
+
+        // Get the uploaded file's public URL for Google Drive sync
+        const { data: { publicUrl } } = supabase.storage
+          .from("receipts")
+          .getPublicUrl(fileName);
 
         if (accessToken && functionData?.data) {
           // Upload to Google Drive
@@ -464,8 +465,8 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
-                      <img 
-                        src={receipt.image_url} 
+                      <ReceiptImage 
+                        imageUrl={receipt.image_url} 
                         alt={receipt.notes?.includes("Migrated from Google Sheets") ? "Migrated receipt" : "Receipt thumbnail"}
                         className="w-full h-24 object-cover rounded-md border border-border group-hover:opacity-80 transition-opacity"
                       />
@@ -486,8 +487,8 @@ const ReceiptUpload = ({ userId, currencySymbol }: ReceiptUploadProps) => {
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
                     <div className="p-4">
-                      <img 
-                        src={receipt.image_url} 
+                      <ReceiptImage 
+                        imageUrl={receipt.image_url} 
                         alt={receipt.notes?.includes("Migrated from Google Sheets") ? "Migrated receipt (full size)" : "Receipt full size"}
                         className="w-full h-auto rounded-lg mb-4"
                       />

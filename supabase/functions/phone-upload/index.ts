@@ -107,12 +107,12 @@ serve(async (req) => {
     // Kick off background processing (AI + Google sync) so the upload response stays fast
     const processAndSync = async () => {
       try {
-        // Process the receipt with AI
+        // Process the receipt with AI - pass file path
         const { data: processData, error: processError } = await supabase.functions.invoke(
           "process-receipt",
           {
             body: {
-              imageUrl: urlData.publicUrl,
+              filePath: fileName,
               userId: session.user_id,
             },
           }
