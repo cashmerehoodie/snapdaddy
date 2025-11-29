@@ -12,6 +12,7 @@ import PhoneUpload from "./pages/PhoneUpload";
 import NotFound from "./pages/NotFound";
 import Subscribe from "./pages/Subscribe";
 import AccessCode from "./pages/AccessCode";
+import LogoGenerator from "./pages/LogoGenerator";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,14 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/subscribe" element={<Subscribe />} />
             <Route path="/access-code" element={<AccessCode />} />
+            <Route 
+              path="/logo-generator"
+              element={
+                <ProtectedRoute>
+                  <LogoGenerator />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/dashboard" 
               element={
