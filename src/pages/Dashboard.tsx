@@ -20,39 +20,35 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [currency] = useState<string>(() => {
     return localStorage.getItem("currency") || "USD";
   });
 
   useEffect(() => {
+    // Fast session check - no loading state since ProtectedRoute already handled auth
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session) {
+        fetchProfileAvatar(session.user.id);
+      }
+    });
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (!session) {
-          navigate("/auth");
+        if (session) {
+          fetchProfileAvatar(session.user.id);
         }
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      
-      if (!session) {
-        navigate("/auth");
-      } else {
-        // Fetch profile avatar
-        fetchProfileAvatar(session.user.id);
-      }
-    });
-
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const fetchProfileAvatar = async (userId: string) => {
     const { data } = await supabase
@@ -116,20 +112,16 @@ const Dashboard = () => {
     return symbols[curr] || "$";
   };
 
-  if (loading) {
+  // No need for separate loading/redirect - ProtectedRoute handles this
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex items-center gap-3">
           <Receipt className="w-8 h-8 text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Loading user data...</p>
         </div>
       </div>
     );
-  }
-
-  if (!user) {
-    navigate("/auth");
-    return null;
   }
 
   return (
