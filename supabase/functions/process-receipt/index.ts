@@ -42,9 +42,9 @@ serve(async (req) => {
       );
     }
 
-    const { imageUrl, userId } = await req.json();
+    const { filePath, userId } = await req.json();
 
-    if (!imageUrl || !userId) {
+    if (!filePath || !userId) {
       throw new Error("Missing required parameters");
     }
 
@@ -67,24 +67,26 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Fetching image from:", imageUrl);
+    console.log("Downloading image from storage:", filePath);
     
-    // Fetch the image and convert to base64
-    const imageResponse = await fetch(imageUrl);
+    // Download the image from storage using service role
+    const { data: imageBlob, error: downloadError } = await supabase.storage
+      .from('receipts')
+      .download(filePath);
     
-    if (!imageResponse.ok) {
-      console.error("Failed to fetch image:", imageResponse.status, imageResponse.statusText);
-      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+    if (downloadError || !imageBlob) {
+      console.error("Failed to download image:", downloadError);
+      throw new Error(`Failed to download image: ${downloadError?.message || 'Unknown error'}`);
     }
 
-    const imageBlob = await imageResponse.blob();
+    // Convert blob to base64
     const imageBuffer = await imageBlob.arrayBuffer();
     const base64Image = btoa(
       new Uint8Array(imageBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
     );
     
-    // Detect image format
-    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+    // Detect image format from blob type
+    const contentType = imageBlob.type || 'image/jpeg';
     const dataUrl = `data:${contentType};base64,${base64Image}`;
     
     console.log("Image converted to base64, processing with AI...");
@@ -179,7 +181,9 @@ Use intelligent matching - check both merchant name AND items purchased. If unsu
       receiptData.date = `${year}-${month}-${day}`;
     }
 
-    // Insert into database
+    // Insert into database - store the file path
+    const imageUrl = `${supabaseUrl}/storage/v1/object/public/receipts/${filePath}`;
+    
     const { data: insertedReceipt, error: insertError } = await supabase
       .from("receipts")
       .insert({
