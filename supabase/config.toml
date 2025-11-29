@@ -1,5 +1,8 @@
 project_id = "nxcvnyssknbafcjyowrh"
 
+[functions.generate-logo]
+verify_jwt = true
+
 [functions.stripe-webhook]
 verify_jwt = false
 
