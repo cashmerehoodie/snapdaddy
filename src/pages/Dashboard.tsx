@@ -53,7 +53,15 @@ const Dashboard = () => {
       console.error("[Dashboard] Sign out API error (will redirect anyway):", error);
     } finally {
       // ALWAYS clear state and redirect, regardless of API response
-      localStorage.removeItem('supabase.auth.token');
+      try {
+        const keysToRemove = Object.keys(localStorage).filter((key) =>
+          key.startsWith('sb-') || key.toLowerCase().includes('supabase')
+        );
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+        console.log('[Dashboard] Cleared Supabase auth storage keys on sign out:', keysToRemove);
+      } catch (error) {
+        console.error('[Dashboard] Error clearing Supabase auth storage:', error);
+      }
       toast.success("Signed out successfully");
       navigate("/auth");
     }

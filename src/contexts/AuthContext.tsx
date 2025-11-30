@@ -11,6 +11,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const clearSupabaseAuthStorage = () => {
+  try {
+    const keysToRemove = Object.keys(localStorage).filter((key) =>
+      key.startsWith('sb-') || key.toLowerCase().includes('supabase')
+    );
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+    console.log('[AuthContext] Cleared Supabase auth storage keys:', keysToRemove);
+  } catch (error) {
+    console.error('[AuthContext] Error clearing Supabase auth storage:', error);
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -26,8 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Always clear local state regardless of API response
       setSession(null);
       setUser(null);
-      // Force clear localStorage as backup
-      localStorage.removeItem('supabase.auth.token');
+      // Aggressively clear all Supabase auth storage keys
+      clearSupabaseAuthStorage();
       console.log("[AuthContext] Local auth state cleared");
     }
   };
@@ -67,9 +79,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (error || !user) {
             // Session is STALE - clear it
             console.log("[AuthContext] Stale session detected, clearing...");
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
+            try {
+              await supabase.auth.signOut();
+            } catch (error) {
+              console.error("[AuthContext] Error signing out stale session:", error);
+            } finally {
+              clearSupabaseAuthStorage();
+              setSession(null);
+              setUser(null);
+            }
           } else {
             setSession(session);
             setUser(user);
@@ -80,6 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("[AuthContext] Session validation error:", error);
+        clearSupabaseAuthStorage();
         setSession(null);
         setUser(null);
       } finally {
