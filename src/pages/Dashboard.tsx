@@ -46,32 +46,16 @@ const Dashboard = () => {
   };
 
   const handleSignOut = async () => {
+    console.log("[Dashboard] Sign out initiated");
     try {
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        console.error("Sign out error:", error);
-      }
-      
-      try {
-        localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
-      } catch (storageError) {
-        console.warn("Could not clear local auth token:", storageError);
-      }
-      
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("[Dashboard] Sign out API error (will redirect anyway):", error);
+    } finally {
+      // ALWAYS clear state and redirect, regardless of API response
+      localStorage.removeItem('supabase.auth.token');
       toast.success("Signed out successfully");
-      
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 300);
-    } catch (error: any) {
-      console.error("Sign out catch error:", error);
-      try {
-        localStorage.removeItem("sb-nxcvnyssknbafcjyowrh-auth-token");
-      } catch {}
-      setTimeout(() => {
-        window.location.href = "/auth";
-      }, 300);
+      navigate("/auth");
     }
   };
 
