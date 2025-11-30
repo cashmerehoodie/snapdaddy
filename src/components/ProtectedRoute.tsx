@@ -15,6 +15,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     subscription_status,
     has_free_access,
     loading: subLoading,
+    authError,
   } = useSubscription(user);
 
   const hasAccess =
@@ -37,6 +38,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!user) {
     console.log("[ProtectedRoute] No user, redirecting to /auth");
+    return <Navigate to="/auth" replace />;
+  }
+
+  // If there's an auth error, redirect to auth page to force re-login
+  if (authError) {
+    console.log("[ProtectedRoute] Auth error detected, redirecting to /auth to force re-login");
     return <Navigate to="/auth" replace />;
   }
 

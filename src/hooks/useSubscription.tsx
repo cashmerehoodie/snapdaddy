@@ -10,6 +10,7 @@ interface SubscriptionStatus {
   trial_end?: string;
   loading: boolean;
   checkedForUserId: string | null;
+  authError: boolean;
 }
 
 export const useSubscription = (user: User | null) => {
@@ -18,6 +19,7 @@ export const useSubscription = (user: User | null) => {
     subscription_status: "inactive",
     loading: true,
     checkedForUserId: null,
+    authError: false,
   });
 
   // Compute actual loading state - we're loading if status.loading is true
@@ -34,6 +36,7 @@ export const useSubscription = (user: User | null) => {
         subscription_status: "inactive",
         loading: false,
         checkedForUserId: null,
+        authError: false,
       });
       return;
     }
@@ -55,12 +58,31 @@ export const useSubscription = (user: User | null) => {
           profileError,
         });
 
-        if (profileError || !profile) {
+        if (profileError) {
+          // Check if it's an auth error
+          const isAuthError = profileError.message?.includes("JWT") || 
+                             profileError.message?.includes("session") ||
+                             profileError.code === "PGRST301";
+          
+          console.log("[useSubscription] Profile error is auth-related:", isAuthError);
+          
           setStatus({
             subscribed: false,
             subscription_status: "inactive",
             loading: false,
             checkedForUserId: user.id,
+            authError: isAuthError,
+          });
+          return;
+        }
+
+        if (!profile) {
+          setStatus({
+            subscribed: false,
+            subscription_status: "inactive",
+            loading: false,
+            checkedForUserId: user.id,
+            authError: false,
           });
           return;
         }
@@ -75,14 +97,19 @@ export const useSubscription = (user: User | null) => {
           has_free_access: !!profile.has_free_access,
           loading: false,
           checkedForUserId: user.id,
+          authError: false,
         });
-      } catch (profileErr) {
+      } catch (profileErr: any) {
         console.error("Error in fallback profile check:", profileErr);
+        const isAuthError = profileErr.message?.includes("JWT") || 
+                           profileErr.message?.includes("session");
+        
         setStatus({
           subscribed: false,
           subscription_status: "inactive",
           loading: false,
           checkedForUserId: user.id,
+          authError: isAuthError,
         });
       }
     };
