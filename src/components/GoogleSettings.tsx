@@ -416,7 +416,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
                 <Button 
                   onClick={handleAutoSetup} 
                   disabled={autoSetupLoading}
-                  className="h-auto py-4 flex-col items-start"
+                  className="h-auto py-4 flex-col items-start relative"
                 >
                   <span className="font-semibold">🚀 Quick Setup (Recommended)</span>
                   <span className="text-xs opacity-90 font-normal">
@@ -426,7 +426,7 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
                 <Button 
                   variant="outline" 
                   onClick={() => handleSetupModeChange('manual')}
-                  className="h-auto py-4 flex-col items-start"
+                  className="h-auto py-4 flex-col items-start relative"
                 >
                   <span className="font-semibold">📋 Use Existing Sheet</span>
                   <span className="text-xs opacity-70 font-normal">
@@ -434,6 +434,14 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
                   </span>
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* Show selected setup method indicator */}
+          {setupMode === 'manual' && isConnected && (
+            <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium">Using manual setup with existing sheet</span>
             </div>
           )}
 
