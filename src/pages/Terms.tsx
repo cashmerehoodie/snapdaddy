@@ -132,7 +132,7 @@ const Terms = () => {
 
             <h2 className="text-2xl font-semibold mt-8 mb-4">10. Contact</h2>
             <p>For questions about these Terms:<br />
-            📧 <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline">snapdaddyapp@gmail.com</a></p>
+            📧 <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">snapdaddyapp@gmail.com</a></p>
           </div>
         </div>
       </div>
