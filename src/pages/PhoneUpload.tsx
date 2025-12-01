@@ -14,6 +14,8 @@ const PhoneUpload = () => {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploadedCount, setUploadedCount] = useState(0);
 
+  // Hardcoded Supabase URL with fallback
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://nxcvnyssknbafcjyowrh.supabase.co';
   
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,7 +51,23 @@ const PhoneUpload = () => {
   };
 
   const handleUpload = async () => {
-    if (selectedFiles.length === 0 || !sessionId) return;
+    // Validate sessionId exists
+    if (!sessionId) {
+      toast.error("Invalid upload link. Please scan a new QR code.");
+      return;
+    }
+
+    if (selectedFiles.length === 0) {
+      toast.error("Please select at least one file to upload.");
+      return;
+    }
+
+    // Validate Supabase URL is configured
+    if (!SUPABASE_URL) {
+      console.error("Supabase URL not configured");
+      toast.error("Configuration error. Please try again.");
+      return;
+    }
 
     setUploading(true);
     setUploadedCount(0);
@@ -57,6 +75,13 @@ const PhoneUpload = () => {
     try {
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
+        const uploadUrl = `${SUPABASE_URL}/functions/v1/phone-upload?sessionId=${sessionId}`;
+        
+        // Debug logging
+        console.log('Uploading to:', uploadUrl);
+        console.log('Session ID:', sessionId);
+        console.log('File:', file.name, 'Size:', file.size);
+        
         toast.loading(`Uploading receipt ${i + 1} of ${selectedFiles.length}...`, {
           id: `upload-${i}`,
         });
@@ -64,27 +89,37 @@ const PhoneUpload = () => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/phone-upload?sessionId=${sessionId}`,
-          {
+        try {
+          const response = await fetch(uploadUrl, {
             method: "POST",
             body: formData,
-          }
-        );
+          });
 
-        const result = await response.json();
+          console.log('Response status:', response.status);
+          
+          const result = await response.json();
+          console.log('Response result:', result);
 
-        if (!response.ok) {
-          if (response.status === 404 || response.status === 410) {
-            throw new Error(
-              "This upload link has expired. Please open SnapDaddy on your computer and generate a new QR code."
-            );
+          if (!response.ok) {
+            if (response.status === 404 || response.status === 410) {
+              throw new Error(
+                "This upload link has expired. Please open SnapDaddy on your computer and generate a new QR code."
+              );
+            }
+            throw new Error(result.error || `Upload failed with status ${response.status}`);
           }
-          throw new Error(result.error || "Upload failed");
+
+          setUploadedCount(i + 1);
+          toast.success(`Receipt ${i + 1} uploaded!`, { id: `upload-${i}` });
+        } catch (fetchError) {
+          console.error('Fetch error for file', i + 1, ':', fetchError);
+          console.error('Attempted URL:', uploadUrl);
+          
+          if (fetchError instanceof TypeError) {
+            throw new Error('Network error. Please check your connection and try again.');
+          }
+          throw fetchError;
         }
-
-        setUploadedCount(i + 1);
-        toast.success(`Receipt ${i + 1} uploaded!`, { id: `upload-${i}` });
       }
 
       setUploadComplete(true);
