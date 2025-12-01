@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { refreshGoogleToken } from "../_shared/refreshGoogleToken.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { accessToken, userId, folderName = 'SnapDaddy Receipts' } = await req.json();
+    let { accessToken, userId, folderName = 'SnapDaddy Receipts' } = await req.json();
 
     console.log("Setting up Google storage for user:", userId);
 
@@ -21,9 +22,35 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Helper function to make Google API calls with token refresh on 401
+    const fetchWithTokenRefresh = async (url: string, options: RequestInit): Promise<Response> => {
+      let response = await fetch(url, options);
+      
+      if (response.status === 401 && userId) {
+        console.log("Access token expired, attempting refresh...");
+        const refreshResult = await refreshGoogleToken(userId, accessToken);
+        
+        if (refreshResult.success) {
+          accessToken = refreshResult.accessToken;
+          console.log("Token refreshed successfully, retrying request...");
+          
+          // Update the Authorization header with new token
+          const newHeaders = { ...options.headers as Record<string, string> };
+          newHeaders['Authorization'] = `Bearer ${accessToken}`;
+          
+          // Retry the request with new token
+          response = await fetch(url, { ...options, headers: newHeaders });
+        } else {
+          throw new Error(refreshResult.error || "Failed to refresh Google token. Please reconnect your Google account.");
+        }
+      }
+      
+      return response;
+    };
+
     // 1. Create Drive folder
     console.log("Creating Drive folder:", folderName);
-    const folderSearchResponse = await fetch(
+    const folderSearchResponse = await fetchWithTokenRefresh(
       `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name)`,
       {
         headers: {
@@ -45,7 +72,7 @@ serve(async (req) => {
       folderId = folderSearchData.files[0].id;
       console.log("Found existing folder:", folderId);
     } else {
-      const createFolderResponse = await fetch(
+      const createFolderResponse = await fetchWithTokenRefresh(
         'https://www.googleapis.com/drive/v3/files?fields=id,name',
         {
           method: 'POST',
@@ -74,7 +101,7 @@ serve(async (req) => {
 
     // 2. Create Google Sheet
     console.log("Creating Google Sheet...");
-    const createSheetResponse = await fetch(
+    const createSheetResponse = await fetchWithTokenRefresh(
       'https://sheets.googleapis.com/v4/spreadsheets',
       {
         method: 'POST',
@@ -108,7 +135,7 @@ serve(async (req) => {
     console.log("Created spreadsheet:", spreadsheetId);
 
     // 3. Add welcome headers to the Getting Started sheet
-    await fetch(
+    await fetchWithTokenRefresh(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Getting Started!A1:F1:append?valueInputOption=RAW`,
       {
         method: 'POST',
@@ -123,7 +150,7 @@ serve(async (req) => {
     );
 
     // 4. Format the header row
-    await fetch(
+    await fetchWithTokenRefresh(
       `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
       {
         method: 'POST',
