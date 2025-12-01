@@ -141,7 +141,16 @@ const Privacy = () => {
               <li>Withdraw permissions from Google, Microsoft, QuickBooks, or Xero</li>
               <li>Lodge a complaint with ICO (UK)</li>
             </ul>
-            <p>To request any of these, contact: 📧 <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">snapdaddyapp@gmail.com</a></p>
+            <p>To request any of these, contact: 📧 <a
+              href="mailto:snapdaddyapp@gmail.com"
+              className="text-primary hover:underline"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = "mailto:snapdaddyapp@gmail.com";
+              }}
+            >
+              snapdaddyapp@gmail.com
+            </a></p>
 
             <h2 className="text-2xl font-semibold mt-8 mb-4">7. Third-Party Services</h2>
             <p>SnapDaddy integrates with:</p>
@@ -164,7 +173,16 @@ const Privacy = () => {
             <p>We may update this Privacy Policy periodically. Continued use of the service constitutes acceptance of the updated terms.</p>
 
             <h2 className="text-2xl font-semibold mt-8 mb-4">10. Contact</h2>
-            <p>For any privacy questions: 📧 <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">snapdaddyapp@gmail.com</a></p>
+            <p>For any privacy questions: 📧 <a
+              href="mailto:snapdaddyapp@gmail.com"
+              className="text-primary hover:underline"
+              onClick={(e) => {
+                e.preventDefault();
+                window.location.href = "mailto:snapdaddyapp@gmail.com";
+              }}
+            >
+              snapdaddyapp@gmail.com
+            </a></p>
           </div>
         </div>
       </div>
