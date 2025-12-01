@@ -8,6 +8,8 @@ export const EmailLink = ({ email, className = "" }: EmailLinkProps) => {
     <a
       href={`mailto:${email}`}
       className={className}
+      target="_self"
+      rel="noopener"
     >
       {email}
     </a>
