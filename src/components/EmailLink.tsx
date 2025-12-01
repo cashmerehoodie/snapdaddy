@@ -4,12 +4,17 @@ interface EmailLinkProps {
 }
 
 export const EmailLink = ({ email, className = "" }: EmailLinkProps) => {
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    // Use window.open with a named target for better compatibility
+    window.open(`mailto:${email}`, 'mail');
+  };
+
   return (
     <a
       href={`mailto:${email}`}
       className={className}
-      target="_self"
-      rel="noopener"
+      onClick={handleClick}
     >
       {email}
     </a>
