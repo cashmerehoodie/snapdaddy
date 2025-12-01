@@ -24,11 +24,11 @@ const Auth = () => {
       console.log("Auth state changed:", event, !!session);
       
       if (session) {
-        console.log("Session detected, navigating to dashboard");
+        console.log("Session detected, navigating to subscribe");
         // Use longer delay on mobile for better compatibility
         setTimeout(() => {
-          console.log("Executing navigation to dashboard");
-          navigate("/dashboard", { replace: true });
+          console.log("Executing navigation to subscribe");
+          navigate("/subscribe", { replace: true });
         }, 200);
       }
     });
@@ -37,8 +37,8 @@ const Auth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("Existing session check:", !!session);
       if (session) {
-        console.log("Existing session found, navigating to dashboard");
-        navigate("/dashboard", { replace: true });
+        console.log("Existing session found, navigating to subscribe");
+        navigate("/subscribe", { replace: true });
       }
     });
 
@@ -52,7 +52,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      const redirectUrl = `${window.location.origin}/subscribe`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -64,7 +64,7 @@ const Auth = () => {
       if (error) throw error;
 
       toast.success("Account created! Please check your email to verify.");
-      navigate("/dashboard");
+      navigate("/subscribe");
     } catch (error: any) {
       toast.error(error.message || "Error signing up");
     } finally {
@@ -85,7 +85,7 @@ const Auth = () => {
       if (error) throw error;
 
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate("/subscribe");
     } catch (error: any) {
       toast.error(error.message || "Error signing in");
     } finally {
