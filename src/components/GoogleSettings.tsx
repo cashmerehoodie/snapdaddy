@@ -235,19 +235,21 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
     const toastId = toast.loading("Creating your Google Sheet and Drive folder...");
     
     try {
-      // Check session for fresh token first
+      // Check session for fresh tokens first
       const { data: { session } } = await supabase.auth.getSession();
       let accessToken = session?.provider_token;
+      let refreshToken = session?.provider_refresh_token;
       
-      // If no session token, check the database for saved token
+      // If no session token, check the database for saved tokens
       if (!accessToken) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("google_provider_token")
+          .select("google_provider_token, google_refresh_token")
           .eq("user_id", userId)
           .maybeSingle();
         
         accessToken = profile?.google_provider_token;
+        refreshToken = profile?.google_refresh_token;
       }
 
       // If still no token, automatically trigger Google OAuth
@@ -258,7 +260,16 @@ const GoogleSettings = ({ userId }: GoogleSettingsProps) => {
         return;
       }
 
-      // Save token to database if it came from session
+      // CRITICAL: Check if we have a refresh token for long-term access
+      // Google only provides refresh tokens on initial consent
+      if (!refreshToken) {
+        toast.info("Reconnecting to Google to enable automatic token refresh...", { id: toastId });
+        setAutoSetupLoading(false);
+        handleGoogleConnect();
+        return;
+      }
+
+      // Save tokens to database if they came from session
       if (session?.provider_token) {
         const updateData: any = { 
           google_provider_token: session.provider_token 
