@@ -31,11 +31,35 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
     // Check for stored Google token in profiles
     const { data: profile } = await supabase
       .from("profiles")
-      .select("google_provider_token, google_sheets_id")
+      .select("google_provider_token, google_refresh_token, google_sheets_id")
       .eq("user_id", userId)
       .maybeSingle();
 
-    const token = profile?.google_provider_token;
+    // Check database for saved token
+    let token = profile?.google_provider_token;
+    
+    // Also check current session for a fresh token (like GoogleSettings does)
+    const { data: { session } } = await supabase.auth.getSession();
+    const sessionToken = session?.provider_token;
+    
+    // If we have a fresh session token, use it and save to database
+    if (sessionToken) {
+      token = sessionToken;
+      const updateData: any = { 
+        google_provider_token: sessionToken 
+      };
+      
+      // Store refresh token for long-term access
+      if (session?.provider_refresh_token) {
+        updateData.google_refresh_token = session.provider_refresh_token;
+      }
+      
+      await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("user_id", userId);
+    }
+
     setAccessToken(token || null);
     setSheetsId(profile?.google_sheets_id || null);
     setHasGoogleAccess(!!token && !!profile?.google_sheets_id);
