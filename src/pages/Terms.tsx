@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { EmailLink } from "@/components/EmailLink";
 
 const Terms = () => {
   const navigate = useNavigate();
@@ -132,16 +133,7 @@ const Terms = () => {
 
             <h2 className="text-2xl font-semibold mt-8 mb-4">10. Contact</h2>
             <p>For questions about these Terms:<br />
-            📧 <a
-              href="mailto:snapdaddyapp@gmail.com"
-              className="text-primary hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                window.location.href = "mailto:snapdaddyapp@gmail.com";
-              }}
-            >
-              snapdaddyapp@gmail.com
-            </a></p>
+            📧 <EmailLink email="snapdaddyapp@gmail.com" className="text-primary hover:underline" /></p>
           </div>
         </div>
       </div>
