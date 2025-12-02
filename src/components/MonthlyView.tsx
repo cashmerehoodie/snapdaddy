@@ -80,20 +80,21 @@ const MonthlyView = ({ userId, currencySymbol }: MonthlyViewProps) => {
     }
   }, [selectedMonth]);
 
-  // Realtime subscription for receipt deletions
+  // Realtime subscription for receipt changes (INSERT, UPDATE, DELETE)
   useEffect(() => {
     const channel = supabase
       .channel('monthly-view-receipts')
       .on(
         'postgres_changes',
         {
-          event: 'DELETE',
+          event: '*',
           schema: 'public',
           table: 'receipts',
           filter: `user_id=eq.${userId}`
         },
-        () => {
-          // Refresh data when receipts are deleted
+        (payload) => {
+          console.log('Receipt change detected:', payload.eventType);
+          // Refresh data when receipts change
           fetchAvailableYears();
           fetchYearlyData();
           if (selectedMonth !== null) {
