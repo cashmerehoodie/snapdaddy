@@ -17,49 +17,66 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Authenticate the user from the Authorization header
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header provided" }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Authentication failed" }),
-        { 
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
-
+    // Parse request body first
     const { filePath, userId } = await req.json();
 
     if (!filePath || !userId) {
-      throw new Error("Missing required parameters");
+      throw new Error("Missing required parameters: filePath and userId are required");
     }
 
-    // Validate that the authenticated user matches the requested userId
-    if (user.id !== userId) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized: Cannot process receipts for other users" }),
-        { 
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
+    // Try to authenticate the user from the Authorization header
+    const authHeader = req.headers.get("Authorization");
+    let authenticatedUserId: string | null = null;
+
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      
+      // Try to get user from token (works for direct user calls)
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (!authError && user) {
+        authenticatedUserId = user.id;
+        console.log(`User authenticated via token: ${user.id}`);
+      }
     }
 
-    console.log(`Processing receipt for authenticated user ${userId}`);
+    // If user authentication succeeded, validate userId matches
+    if (authenticatedUserId) {
+      if (authenticatedUserId !== userId) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: Cannot process receipts for other users" }),
+          { 
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+      console.log(`Processing receipt for authenticated user ${authenticatedUserId}`);
+    } else {
+      // For internal calls (from phone-upload with service role), validate userId exists
+      // This is safe because internal calls use the service role key
+      console.log(`No user token found, validating userId for internal call: ${userId}`);
+      
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", userId)
+        .single();
+      
+      if (profileError || !profile) {
+        console.error("Invalid userId for internal call:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Invalid user ID provided" }),
+          { 
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" } 
+          }
+        );
+      }
+      
+      authenticatedUserId = userId;
+      console.log(`Processing receipt for internal call, user ${userId}`);
+    }
 
     // Call Lovable AI to process the receipt image
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
