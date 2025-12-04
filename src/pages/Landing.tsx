@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight, LogOut, Cloud, FileSpreadsheet, CheckCircle } from "lucide-react";
+import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight, LogOut, Cloud, FileSpreadsheet, CheckCircle, Instagram } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -268,6 +268,16 @@ const Landing = () => {
           >
             Terms of Service
           </button>
+          <span className="hidden sm:inline">•</span>
+          <a 
+            href="https://www.instagram.com/snapdaddyapp/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors"
+            aria-label="Follow us on Instagram"
+          >
+            <Instagram className="h-5 w-5" />
+          </a>
         </div>
       </footer>
     </div>
