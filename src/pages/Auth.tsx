@@ -10,11 +10,13 @@ import { toast } from "sonner";
 import { Receipt, Eye, EyeOff } from "lucide-react";
 import Footer from "@/components/Footer";
 import ReCAPTCHA from "react-google-recaptcha";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const RECAPTCHA_SITE_KEY = "6Le0jCEsAAAAAMt_aYZ2f5vghryKC6phWO87G914";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -306,12 +308,13 @@ const Auth = () => {
                   </div>
                   
                   {/* reCAPTCHA */}
-                  <div className="flex justify-center">
+                  <div className="flex justify-center recaptcha-container">
                     <ReCAPTCHA
                       ref={recaptchaRef}
                       sitekey={RECAPTCHA_SITE_KEY}
                       onChange={handleCaptchaChange}
                       theme="light"
+                      size={isMobile ? "compact" : "normal"}
                     />
                   </div>
 
