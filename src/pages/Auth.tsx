@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Receipt, Eye, EyeOff } from "lucide-react";
 import Footer from "@/components/Footer";
+import ReCAPTCHA from "react-google-recaptcha";
+
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -16,6 +19,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -48,11 +53,45 @@ const Auth = () => {
     };
   }, [navigate]);
 
+  const verifyCaptcha = async (token: string): Promise<boolean> => {
+    try {
+      const response = await supabase.functions.invoke('verify-recaptcha', {
+        body: { token }
+      });
+      
+      if (response.error) {
+        console.error('Captcha verification error:', response.error);
+        return false;
+      }
+      
+      return response.data?.success === true;
+    } catch (error) {
+      console.error('Captcha verification failed:', error);
+      return false;
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaToken) {
+      toast.error("Please complete the CAPTCHA verification");
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Verify captcha first
+      const isValidCaptcha = await verifyCaptcha(captchaToken);
+      if (!isValidCaptcha) {
+        toast.error("CAPTCHA verification failed. Please try again.");
+        recaptchaRef.current?.reset();
+        setCaptchaToken(null);
+        setLoading(false);
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/subscribe`;
       const { error } = await supabase.auth.signUp({
         email,
@@ -68,6 +107,8 @@ const Auth = () => {
       navigate("/subscribe");
     } catch (error: any) {
       toast.error(error.message || "Error signing up");
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -115,6 +156,10 @@ const Auth = () => {
       setLoading(false);
       toast.error(error.message || "Google sign-in failed");
     }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
   };
 
   return (
@@ -259,10 +304,21 @@ const Auth = () => {
                       </button>
                     </div>
                   </div>
+                  
+                  {/* reCAPTCHA */}
+                  <div className="flex justify-center">
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      onChange={handleCaptchaChange}
+                      theme="light"
+                    />
+                  </div>
+
                   <Button
                     type="submit"
                     className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
-                    disabled={loading}
+                    disabled={loading || !captchaToken}
                   >
                     {loading ? "Creating account..." : "Sign Up"}
                   </Button>
