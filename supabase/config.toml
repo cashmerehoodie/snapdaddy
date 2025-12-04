@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.phone-upload]
 verify_jwt = false
+
+[functions.verify-recaptcha]
+verify_jwt = false
