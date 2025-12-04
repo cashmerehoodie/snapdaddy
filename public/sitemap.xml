@@ -2,31 +2,49 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://snapdaddy.app/</loc>
-    <lastmod>2025-12-02</lastmod>
+    <lastmod>2025-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://snapdaddy.app/auth</loc>
-    <lastmod>2025-12-02</lastmod>
+    <lastmod>2025-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://snapdaddy.app/subscribe</loc>
-    <lastmod>2025-12-02</lastmod>
+    <lastmod>2025-12-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://snapdaddy.app/dashboard</loc>
+    <lastmod>2025-12-04</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://snapdaddy.app/profile</loc>
+    <lastmod>2025-12-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://snapdaddy.app/access-code</loc>
+    <lastmod>2025-12-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://snapdaddy.app/privacy</loc>
-    <lastmod>2025-12-02</lastmod>
+    <lastmod>2025-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://snapdaddy.app/terms</loc>
-    <lastmod>2025-12-02</lastmod>
+    <lastmod>2025-12-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>

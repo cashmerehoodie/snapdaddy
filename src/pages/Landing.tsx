@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight, LogOut } from "lucide-react";
+import { Receipt, Sparkles, TrendingUp, Shield, ArrowRight, LogOut, Cloud, FileSpreadsheet, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,20 +87,19 @@ const Landing = () => {
         <section className="max-w-4xl mx-auto text-center space-y-8 mb-20">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4 animate-fade-in">
             <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-sm font-medium text-primary">AI-Powered Receipt Tracking</span>
+            <span className="text-sm font-medium text-primary">AI-Powered Receipt Tracking App</span>
           </div>
           
           <h2 className="text-5xl md:text-6xl font-bold leading-tight animate-slide-up" style={{ animationDelay: '0.1s' }}>
-            Never lose a{" "}
+            The Best{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              receipt
+              AI Receipt Scanner
             </span>{" "}
-            again
+            & Expense Tracker
           </h2>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            Snap a photo, let AI do the rest. SnapDaddy automatically organizes your receipts,
-            tracks expenses, and prepares you for tax season.
+            Scan receipts online with our AI expense tracker. SnapDaddy is the automatic bookkeeping app that lets you upload receipts online and manage expenses easily. Perfect for smart tax prep.
           </p>
 
           {user && (
@@ -109,7 +108,7 @@ const Landing = () => {
                 <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center animate-float">
                   <Receipt className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Upload Receipts</h3>
+                <h3 className="text-lg font-semibold mb-2">Upload Receipts Online</h3>
                 <p className="text-sm text-muted-foreground">
                   Quickly capture and process receipts with our AI-powered scanner
                 </p>
@@ -129,9 +128,9 @@ const Landing = () => {
                 <div className="w-12 h-12 mx-auto mb-4 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center animate-float" style={{ animationDelay: '1s' }}>
                   <Shield className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Secure Sync</h3>
+                <h3 className="text-lg font-semibold mb-2">Secure Cloud Sync</h3>
                 <p className="text-sm text-muted-foreground">
-                  Auto-sync to Google Drive and Sheets for backup and analysis
+                  Sync receipts with Google Drive, OneDrive, and more
                 </p>
               </div>
             </div>
@@ -151,19 +150,20 @@ const Landing = () => {
                   size="lg"
                   variant="outline"
                   className="border-primary/50 hover:bg-primary/10 hover:scale-105 transition-all duration-300 text-lg px-8"
+                  onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
                 >
                   Learn More
                 </Button>
               </div>
 
-              <section className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-20">
+              <section id="features" className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-20">
                 <div className="text-center space-y-4 p-6 rounded-2xl bg-card border border-border/50 hover:shadow-xl hover:scale-105 hover:-translate-y-1 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.1s' }}>
                   <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center transition-transform duration-300 hover:rotate-12">
                     <Sparkles className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold">AI-Powered Scanning</h3>
+                  <h3 className="text-xl font-semibold">AI Receipt Scanner</h3>
                   <p className="text-muted-foreground">
-                    Our AI automatically reads and extracts information from your receipts with incredible accuracy.
+                    Scan receipts online instantly. Our AI expense tracker automatically reads and extracts data with incredible accuracy.
                   </p>
                 </div>
 
@@ -171,9 +171,9 @@ const Landing = () => {
                   <div className="w-16 h-16 mx-auto bg-gradient-to-br from-primary/20 to-accent/20 rounded-2xl flex items-center justify-center transition-transform duration-300 hover:rotate-12">
                     <TrendingUp className="w-8 h-8 text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold">Smart Organization</h3>
+                  <h3 className="text-xl font-semibold">Automatic Bookkeeping</h3>
                   <p className="text-muted-foreground">
-                    Track monthly and yearly expenses effortlessly. Perfect for tax deductions and budgeting.
+                    Manage expenses easily with automatic categorization. The smart tax prep tool that saves hours of manual work.
                   </p>
                 </div>
 
@@ -185,6 +185,67 @@ const Landing = () => {
                   <p className="text-muted-foreground">
                     Your financial data is encrypted and secure. Only you have access to your receipts.
                   </p>
+                </div>
+              </section>
+
+              {/* Integration Section */}
+              <section className="max-w-5xl mx-auto mt-20 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                <h3 className="text-3xl font-bold mb-4">Sync Receipts Everywhere</h3>
+                <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+                  Sync receipts with Google Drive and OneDrive automatically. Connect to QuickBooks and Xero for seamless accounting.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                  <div className="p-4 rounded-xl bg-card border border-border/50 flex flex-col items-center gap-2 hover:shadow-lg transition-all">
+                    <Cloud className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium">Google Drive</span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border/50 flex flex-col items-center gap-2 hover:shadow-lg transition-all">
+                    <Cloud className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium">OneDrive</span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border/50 flex flex-col items-center gap-2 hover:shadow-lg transition-all">
+                    <FileSpreadsheet className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium">QuickBooks</span>
+                  </div>
+                  <div className="p-4 rounded-xl bg-card border border-border/50 flex flex-col items-center gap-2 hover:shadow-lg transition-all">
+                    <FileSpreadsheet className="w-8 h-8 text-primary" />
+                    <span className="text-sm font-medium">Xero</span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Benefits Section */}
+              <section className="max-w-4xl mx-auto mt-20 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                <h3 className="text-3xl font-bold mb-8">Why Choose SnapDaddy?</h3>
+                <div className="grid md:grid-cols-2 gap-6 text-left">
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border/50">
+                    <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">Upload Receipts Online Instantly</h4>
+                      <p className="text-sm text-muted-foreground">Snap a photo from any device and upload receipts in seconds</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border/50">
+                    <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">AI-Powered Data Extraction</h4>
+                      <p className="text-sm text-muted-foreground">Our AI receipt scanner reads merchant, date, and amount automatically</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border/50">
+                    <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">Smart Tax Prep Tool</h4>
+                      <p className="text-sm text-muted-foreground">Organize expenses by category for easy tax deductions</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border/50">
+                    <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">Manage Expenses Easily</h4>
+                      <p className="text-sm text-muted-foreground">Track monthly and yearly spending with visual reports</p>
+                    </div>
+                  </div>
                 </div>
               </section>
             </>
