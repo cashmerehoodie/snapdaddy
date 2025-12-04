@@ -11,7 +11,7 @@ import { Receipt, Eye, EyeOff } from "lucide-react";
 import Footer from "@/components/Footer";
 import ReCAPTCHA from "react-google-recaptcha";
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
+const RECAPTCHA_SITE_KEY = "6Le0jCEsAAAAAMt_aYZ2f5vghryKC6phWO87G914";
 
 const Auth = () => {
   const navigate = useNavigate();
