@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useTheme } from "next-themes";
 import ManageBillingButton from "@/components/ManageBillingButton";
 import { useSubscription } from "@/hooks/useSubscription";
+import Footer from "@/components/Footer";
 import {
   Select,
   SelectContent,
@@ -671,23 +672,7 @@ const Profile = () => {
         </Dialog>
       </div>
 
-      <footer className="container mx-auto px-4 py-8 border-t border-border/50">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground">
-          <button 
-            onClick={() => navigate("/privacy")}
-            className="hover:text-primary transition-colors underline-offset-4 hover:underline"
-          >
-            Privacy Policy
-          </button>
-          <span className="hidden sm:inline">•</span>
-          <button 
-            onClick={() => navigate("/terms")}
-            className="hover:text-primary transition-colors underline-offset-4 hover:underline"
-          >
-            Terms of Service
-          </button>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
