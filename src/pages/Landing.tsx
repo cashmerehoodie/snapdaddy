@@ -102,6 +102,10 @@ const Landing = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
             Scan receipts online with our AI expense tracker. SnapDaddy is the automatic bookkeeping app that lets you upload receipts online and manage expenses easily. Perfect for smart tax prep.
           </p>
+          
+          <p className="text-sm text-muted-foreground animate-slide-up" style={{ animationDelay: '0.25s' }}>
+            Contact us: <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline">snapdaddyapp@gmail.com</a>
+          </p>
 
           {user && (
             <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto pt-12">

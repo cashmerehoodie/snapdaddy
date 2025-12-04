@@ -100,7 +100,9 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          scopes: "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+          // Only request basic scopes (openid, email, profile) for sign-in
+          // Sensitive scopes (drive.file, spreadsheets) are requested separately
+          // when user connects Google Drive/Sheets in settings
           redirectTo: `${window.location.origin}/auth`,
           skipBrowserRedirect: false,
         },
