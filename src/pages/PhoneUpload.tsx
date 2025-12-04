@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Upload, CheckCircle2, AlertCircle, Camera, X } from "lucide-react";
 import { toast } from "sonner";
+import Footer from "@/components/Footer";
 
 const PhoneUpload = () => {
   const { sessionId } = useParams();
@@ -137,143 +138,149 @@ const PhoneUpload = () => {
 
   if (uploadComplete) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8 text-center">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Upload Complete!</h1>
-          <p className="text-muted-foreground mb-6">
-            {uploadedCount} receipt{uploadedCount > 1 ? "s" : ""} uploaded and being processed. You can close this window now.
-          </p>
-        </Card>
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md p-8 text-center">
+            <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Upload Complete!</h1>
+            <p className="text-muted-foreground mb-6">
+              {uploadedCount} receipt{uploadedCount > 1 ? "s" : ""} uploaded and being processed. You can close this window now.
+            </p>
+          </Card>
+        </div>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md p-6">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold mb-2">Upload Receipt</h1>
-          <p className="text-sm text-muted-foreground">
-            Take a photo or upload an image of your receipt
-          </p>
-        </div>
-
-        {selectedFiles.length === 0 ? (
-          <div className="space-y-4">
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                onChange={handleCameraCapture}
-                className="hidden"
-                id="camera-input"
-              />
-              <Button
-                asChild
-                className="w-full h-32 gap-3 flex-col"
-                variant="outline"
-              >
-                <label htmlFor="camera-input" className="cursor-pointer">
-                  <Camera className="w-8 h-8" />
-                  <span className="font-semibold">Take Photos</span>
-                  <span className="text-xs text-muted-foreground">Select multiple</span>
-                </label>
-              </Button>
-            </label>
-
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-                id="file-input"
-              />
-              <Button
-                asChild
-                className="w-full h-32 gap-3 flex-col"
-                variant="outline"
-              >
-                <label htmlFor="file-input" className="cursor-pointer">
-                  <Upload className="w-8 h-8" />
-                  <span className="font-semibold">Choose from Gallery</span>
-                  <span className="text-xs text-muted-foreground">Select multiple</span>
-                </label>
-              </Button>
-            </label>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {previewUrls.map((url, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={url}
-                    alt={`Receipt preview ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-1 right-1 h-6 w-6"
-                    onClick={() => removeFile(index)}
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-sm text-muted-foreground text-center">
-              {selectedFiles.length} receipt{selectedFiles.length > 1 ? "s" : ""} selected
+    <div className="min-h-screen flex flex-col bg-background">
+      <div className="flex-1 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold mb-2">Upload Receipt</h1>
+            <p className="text-sm text-muted-foreground">
+              Take a photo or upload an image of your receipt
             </p>
+          </div>
 
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <label className="flex-1">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    id="add-more-input"
-                  />
+          {selectedFiles.length === 0 ? (
+            <div className="space-y-4">
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  multiple
+                  onChange={handleCameraCapture}
+                  className="hidden"
+                  id="camera-input"
+                />
+                <Button
+                  asChild
+                  className="w-full h-32 gap-3 flex-col"
+                  variant="outline"
+                >
+                  <label htmlFor="camera-input" className="cursor-pointer">
+                    <Camera className="w-8 h-8" />
+                    <span className="font-semibold">Take Photos</span>
+                    <span className="text-xs text-muted-foreground">Select multiple</span>
+                  </label>
+                </Button>
+              </label>
+
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-input"
+                />
+                <Button
+                  asChild
+                  className="w-full h-32 gap-3 flex-col"
+                  variant="outline"
+                >
+                  <label htmlFor="file-input" className="cursor-pointer">
+                    <Upload className="w-8 h-8" />
+                    <span className="font-semibold">Choose from Gallery</span>
+                    <span className="text-xs text-muted-foreground">Select multiple</span>
+                  </label>
+                </Button>
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={url}
+                      alt={`Receipt preview ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6"
+                      onClick={() => removeFile(index)}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-sm text-muted-foreground text-center">
+                {selectedFiles.length} receipt{selectedFiles.length > 1 ? "s" : ""} selected
+              </p>
+
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <label className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="add-more-input"
+                    />
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full"
+                      disabled={uploading}
+                    >
+                      <label htmlFor="add-more-input" className="cursor-pointer">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Add More
+                      </label>
+                    </Button>
+                  </label>
                   <Button
-                    asChild
                     variant="outline"
-                    className="w-full"
+                    onClick={clearSelection}
                     disabled={uploading}
                   >
-                    <label htmlFor="add-more-input" className="cursor-pointer">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Add More
-                    </label>
+                    Clear All
                   </Button>
-                </label>
+                </div>
                 <Button
-                  variant="outline"
-                  onClick={clearSelection}
+                  onClick={handleUpload}
                   disabled={uploading}
+                  className="w-full h-12"
                 >
-                  Clear All
+                  {uploading ? `Uploading ${uploadedCount}/${selectedFiles.length}...` : `Upload ${selectedFiles.length} Receipt${selectedFiles.length > 1 ? "s" : ""}`}
                 </Button>
               </div>
-              <Button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="w-full h-12"
-              >
-                {uploading ? `Uploading ${uploadedCount}/${selectedFiles.length}...` : `Upload ${selectedFiles.length} Receipt${selectedFiles.length > 1 ? "s" : ""}`}
-              </Button>
             </div>
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+      </div>
+      <Footer />
     </div>
   );
 };
