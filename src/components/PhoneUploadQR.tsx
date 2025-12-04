@@ -30,11 +30,6 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
   const [timeRemaining, setTimeRemaining] = useState<string>("");
   const [uploadComplete, setUploadComplete] = useState(false);
 
-  // Don't render on mobile devices
-  if (isMobile) {
-    return null;
-  }
-
   useEffect(() => {
     if (!open) {
       // Reset state when dialog closes
@@ -103,6 +98,11 @@ const PhoneUploadQR = ({ userId, onUploadComplete }: PhoneUploadQRProps) => {
 
     return () => clearInterval(interval);
   }, [expiresAt]);
+
+  // Don't render on mobile devices - must be AFTER all hooks
+  if (isMobile) {
+    return null;
+  }
 
   const createUploadSession = async () => {
     setLoading(true);
