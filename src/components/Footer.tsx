@@ -1,25 +1,22 @@
-import { useNavigate } from "react-router-dom";
 import { Instagram, Mail } from "lucide-react";
 
 const Footer = () => {
-  const navigate = useNavigate();
-
   return (
     <footer className="container mx-auto px-4 py-8 border-t border-border/50">
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-muted-foreground">
-        <button 
-          onClick={() => navigate("/privacy")}
+        <a 
+          href="/privacy"
           className="hover:text-primary transition-colors underline-offset-4 hover:underline"
         >
           Privacy Policy
-        </button>
+        </a>
         <span className="hidden sm:inline">•</span>
-        <button 
-          onClick={() => navigate("/terms")}
+        <a 
+          href="/terms"
           className="hover:text-primary transition-colors underline-offset-4 hover:underline"
         >
           Terms of Service
-        </button>
+        </a>
         <span className="hidden sm:inline">•</span>
         <a 
           href="mailto:snapdaddyapp@gmail.com"
