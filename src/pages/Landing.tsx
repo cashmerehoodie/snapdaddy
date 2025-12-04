@@ -105,6 +105,10 @@ const Landing = () => {
           
           <p className="text-sm text-muted-foreground animate-slide-up" style={{ animationDelay: '0.25s' }}>
             Contact us: <a href="mailto:snapdaddyapp@gmail.com" className="text-primary hover:underline">snapdaddyapp@gmail.com</a>
+            <span className="mx-2">•</span>
+            <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>
+            <span className="mx-2">•</span>
+            <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
           </p>
 
           {user && (
