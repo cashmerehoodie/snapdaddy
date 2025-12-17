@@ -2,12 +2,19 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Database, Loader2, CheckCircle, AlertCircle, Settings, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import SheetSelector from "./SheetSelector";
 
 interface MigrateDataProps {
   userId: string;
+}
+
+interface ConnectionStatus {
+  hasToken: boolean;
+  hasRefreshToken: boolean;
+  hasSheetsId: boolean;
+  isFullyConnected: boolean;
 }
 
 const MigrateData = ({ userId }: MigrateDataProps) => {
@@ -17,60 +24,97 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
     skipped: number;
     errors: string[] | null;
   } | null>(null);
-  const [hasGoogleAccess, setHasGoogleAccess] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    hasToken: false,
+    hasRefreshToken: false,
+    hasSheetsId: false,
+    isFullyConnected: false,
+  });
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [sheetsId, setSheetsId] = useState<string | null>(null);
   const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
   const [showSheetSelector, setShowSheetSelector] = useState(false);
+  const [sheetLoadError, setSheetLoadError] = useState<string | null>(null);
+  const [checkingConnection, setCheckingConnection] = useState(true);
 
   useEffect(() => {
     checkGoogleAccess();
   }, [userId]);
 
   const checkGoogleAccess = async () => {
-    // Check for stored Google token in profiles
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("google_provider_token, google_refresh_token, google_sheets_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    // Check database for saved token
-    let token = profile?.google_provider_token;
-    
-    // Also check current session for a fresh token (like GoogleSettings does)
-    const { data: { session } } = await supabase.auth.getSession();
-    const sessionToken = session?.provider_token;
-    
-    // If we have a fresh session token, use it and save to database
-    if (sessionToken) {
-      token = sessionToken;
-      const updateData: any = { 
-        google_provider_token: sessionToken 
-      };
-      
-      // Store refresh token for long-term access
-      if (session?.provider_refresh_token) {
-        updateData.google_refresh_token = session.provider_refresh_token;
-      }
-      
-      await supabase
+    setCheckingConnection(true);
+    try {
+      // Check for stored Google token in profiles
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .update(updateData)
-        .eq("user_id", userId);
-    }
+        .select("google_provider_token, google_refresh_token, google_sheets_id")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    setAccessToken(token || null);
-    setSheetsId(profile?.google_sheets_id || null);
-    setHasGoogleAccess(!!token && !!profile?.google_sheets_id);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+
+      // Check database for saved token
+      let token = profile?.google_provider_token;
+      const hasRefreshToken = !!profile?.google_refresh_token;
+      
+      // Also check current session for a fresh token (like GoogleSettings does)
+      const { data: { session } } = await supabase.auth.getSession();
+      const sessionToken = session?.provider_token;
+      
+      // If we have a fresh session token, use it and save to database
+      if (sessionToken) {
+        token = sessionToken;
+        const updateData: any = { 
+          google_provider_token: sessionToken 
+        };
+        
+        // Store refresh token for long-term access
+        if (session?.provider_refresh_token) {
+          updateData.google_refresh_token = session.provider_refresh_token;
+        }
+        
+        await supabase
+          .from("profiles")
+          .update(updateData)
+          .eq("user_id", userId);
+      }
+
+      const status: ConnectionStatus = {
+        hasToken: !!token,
+        hasRefreshToken: hasRefreshToken || !!session?.provider_refresh_token,
+        hasSheetsId: !!profile?.google_sheets_id,
+        isFullyConnected: !!token && !!profile?.google_sheets_id,
+      };
+
+      setAccessToken(token || null);
+      setSheetsId(profile?.google_sheets_id || null);
+      setConnectionStatus(status);
+    } catch (error) {
+      console.error("Error checking Google access:", error);
+    } finally {
+      setCheckingConnection(false);
+    }
   };
 
   const handleStartMigration = () => {
-    if (!hasGoogleAccess) {
+    if (!connectionStatus.isFullyConnected) {
       toast.error("Please connect your Google account in Settings first");
       return;
     }
+    setSheetLoadError(null);
     setShowSheetSelector(true);
+  };
+
+  const handleSheetLoadError = (error: string) => {
+    setSheetLoadError(error);
+  };
+
+  const handleRetryConnection = () => {
+    setSheetLoadError(null);
+    setShowSheetSelector(false);
+    checkGoogleAccess();
   };
 
   const handleMigrate = async () => {
@@ -128,6 +172,26 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
     }
   };
 
+  const getConnectionStatusMessage = () => {
+    if (checkingConnection) return null;
+    
+    const issues: string[] = [];
+    
+    if (!connectionStatus.hasToken) {
+      issues.push("No Google access token found - you need to sign in with Google or connect Google in Settings");
+    }
+    if (!connectionStatus.hasSheetsId) {
+      issues.push("No Google Sheets folder set up - click 'Connect Google' in Settings to create your receipt spreadsheet");
+    }
+    if (connectionStatus.hasToken && !connectionStatus.hasRefreshToken) {
+      issues.push("Missing refresh token - your session may expire soon. Reconnect Google in Settings for persistent access");
+    }
+    
+    return issues;
+  };
+
+  const connectionIssues = getConnectionStatusMessage();
+
   return (
     <Card className="max-w-2xl mx-auto border-border/50 shadow-lg">
       <CardHeader>
@@ -141,12 +205,65 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!hasGoogleAccess && (
-          <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg">
-            <p className="text-sm font-medium text-destructive mb-2">⚠️ Google Not Connected</p>
-            <p className="text-xs text-muted-foreground">
-              Please connect your Google account in the Settings (⚙️ icon) before migrating data.
+        {checkingConnection && (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-primary mr-2" />
+            <span className="text-sm text-muted-foreground">Checking Google connection...</span>
+          </div>
+        )}
+
+        {!checkingConnection && !connectionStatus.isFullyConnected && connectionIssues && connectionIssues.length > 0 && (
+          <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive">Google Connection Issues</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  The following issues need to be resolved before you can migrate:
+                </p>
+              </div>
+            </div>
+            <ul className="text-xs text-muted-foreground space-y-2 ml-7">
+              {connectionIssues.map((issue, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <span className="text-destructive">•</span>
+                  <span>{issue}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2 ml-7 pt-2">
+              <Button variant="outline" size="sm" onClick={handleRetryConnection}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Retry
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!checkingConnection && connectionStatus.isFullyConnected && (
+          <div className="bg-primary/10 border border-primary/20 p-3 rounded-lg">
+            <p className="text-sm font-medium text-primary flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Google Connected
             </p>
+          </div>
+        )}
+
+        {sheetLoadError && (
+          <div className="bg-destructive/10 border border-destructive/20 p-4 rounded-lg space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-destructive">Failed to Load Sheets</p>
+                <p className="text-xs text-muted-foreground mt-1">{sheetLoadError}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 ml-7">
+              <Button variant="outline" size="sm" onClick={handleRetryConnection}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Retry Connection
+              </Button>
+            </div>
           </div>
         )}
 
@@ -164,7 +281,7 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
         {!showSheetSelector ? (
           <Button
             onClick={handleStartMigration}
-            disabled={!hasGoogleAccess}
+            disabled={!connectionStatus.isFullyConnected || checkingConnection}
             className="w-full"
             size="lg"
           >
@@ -173,18 +290,19 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
           </Button>
         ) : (
           <div className="space-y-4">
-            {accessToken && sheetsId && (
+            {accessToken && sheetsId && !sheetLoadError && (
               <SheetSelector
                 accessToken={accessToken}
                 spreadsheetId={sheetsId}
                 onSheetSelect={setSelectedSheet}
                 selectedSheet={selectedSheet}
+                onError={handleSheetLoadError}
               />
             )}
             
             <Button
               onClick={handleMigrate}
-              disabled={migrating || !selectedSheet}
+              disabled={migrating || !selectedSheet || !!sheetLoadError}
               className="w-full"
               size="lg"
             >
