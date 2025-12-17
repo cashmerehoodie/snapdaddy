@@ -15,6 +15,7 @@ interface ConnectionStatus {
   hasRefreshToken: boolean;
   hasSheetsId: boolean;
   isFullyConnected: boolean;
+  tokenMayBeExpired?: boolean;
 }
 
 const MigrateData = ({ userId }: MigrateDataProps) => {
@@ -29,6 +30,7 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
     hasRefreshToken: false,
     hasSheetsId: false,
     isFullyConnected: false,
+    tokenMayBeExpired: false,
   });
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [sheetsId, setSheetsId] = useState<string | null>(null);
@@ -40,6 +42,32 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
   useEffect(() => {
     checkGoogleAccess();
   }, [userId]);
+
+  const refreshGoogleToken = async (refreshToken: string): Promise<string | null> => {
+    try {
+      // Use the setup-google-storage function which has token refresh built in
+      const { data, error } = await supabase.functions.invoke("setup-google-storage", {
+        body: { userId, checkOnly: true }
+      });
+      
+      if (error) {
+        console.error("Token refresh error:", error);
+        return null;
+      }
+      
+      // Fetch the updated token from the profile
+      const { data: updatedProfile } = await supabase
+        .from("profiles")
+        .select("google_provider_token")
+        .eq("user_id", userId)
+        .maybeSingle();
+      
+      return updatedProfile?.google_provider_token || null;
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      return null;
+    }
+  };
 
   const checkGoogleAccess = async () => {
     setCheckingConnection(true);
@@ -57,7 +85,7 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
 
       // Check database for saved token
       let token = profile?.google_provider_token;
-      const hasRefreshToken = !!profile?.google_refresh_token;
+      let hasRefreshToken = !!profile?.google_refresh_token;
       
       // Also check current session for a fresh token (like GoogleSettings does)
       const { data: { session } } = await supabase.auth.getSession();
@@ -73,6 +101,7 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
         // Store refresh token for long-term access
         if (session?.provider_refresh_token) {
           updateData.google_refresh_token = session.provider_refresh_token;
+          hasRefreshToken = true;
         }
         
         await supabase
@@ -80,12 +109,27 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
           .update(updateData)
           .eq("user_id", userId);
       }
+      
+      // If we have a token but no session token, it might be expired - try to refresh
+      if (token && !sessionToken && hasRefreshToken) {
+        console.log("Attempting to refresh expired Google token...");
+        const refreshedToken = await refreshGoogleToken(profile?.google_refresh_token!);
+        if (refreshedToken) {
+          token = refreshedToken;
+          console.log("Token refreshed successfully");
+        } else {
+          console.log("Token refresh failed, token may be invalid");
+          // Token refresh failed, mark as no token so user reconnects
+          token = null;
+        }
+      }
 
       const status: ConnectionStatus = {
         hasToken: !!token,
-        hasRefreshToken: hasRefreshToken || !!session?.provider_refresh_token,
+        hasRefreshToken: hasRefreshToken,
         hasSheetsId: !!profile?.google_sheets_id,
         isFullyConnected: !!token && !!profile?.google_sheets_id,
+        tokenMayBeExpired: !!profile?.google_provider_token && !sessionToken && !hasRefreshToken,
       };
 
       setAccessToken(token || null);
@@ -177,14 +221,16 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
     
     const issues: string[] = [];
     
-    if (!connectionStatus.hasToken) {
-      issues.push("No Google access token found - you need to sign in with Google or connect Google in Settings");
+    if (!connectionStatus.hasToken && connectionStatus.tokenMayBeExpired) {
+      issues.push("Your Google access token has expired and couldn't be refreshed. Go to Settings → Google Settings → click 'Connect Google' to reconnect your account.");
+    } else if (!connectionStatus.hasToken) {
+      issues.push("No Google access token found - go to Settings → Google Settings → click 'Connect Google' to connect your account");
     }
     if (!connectionStatus.hasSheetsId) {
-      issues.push("No Google Sheets folder set up - click 'Connect Google' in Settings to create your receipt spreadsheet");
+      issues.push("No Google Sheets set up - go to Settings → Google Settings → click 'Connect Google' to create your receipt spreadsheet");
     }
     if (connectionStatus.hasToken && !connectionStatus.hasRefreshToken) {
-      issues.push("Missing refresh token - your session may expire soon. Reconnect Google in Settings for persistent access");
+      issues.push("Warning: Missing refresh token - your token will expire in ~1 hour. Reconnect Google in Settings for persistent access");
     }
     
     return issues;
@@ -236,6 +282,12 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Retry
               </Button>
+              <Button variant="default" size="sm" asChild>
+                <a href="/profile">
+                  <Settings className="w-4 h-4 mr-1" />
+                  Go to Settings
+                </a>
+              </Button>
             </div>
           </div>
         )}
@@ -262,6 +314,12 @@ const MigrateData = ({ userId }: MigrateDataProps) => {
               <Button variant="outline" size="sm" onClick={handleRetryConnection}>
                 <RefreshCw className="w-4 h-4 mr-1" />
                 Retry Connection
+              </Button>
+              <Button variant="default" size="sm" asChild>
+                <a href="/profile">
+                  <Settings className="w-4 h-4 mr-1" />
+                  Go to Settings
+                </a>
               </Button>
             </div>
           </div>
