@@ -6,6 +6,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// UUID validation regex
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,7 +24,64 @@ serve(async (req) => {
     const { filePath, userId } = await req.json();
 
     if (!filePath || !userId) {
-      throw new Error("Missing required parameters: filePath and userId are required");
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters: filePath and userId are required" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Validate userId is UUID format
+    if (!uuidRegex.test(userId)) {
+      console.error("Invalid userId format");
+      return new Response(
+        JSON.stringify({ error: "Invalid user ID format" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Validate filePath doesn't contain directory traversal
+    if (filePath.includes("../") || filePath.includes("..\\")) {
+      console.error("Directory traversal attempt detected");
+      return new Response(
+        JSON.stringify({ error: "Invalid file path" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Validate filePath format (userId/timestamp_filename)
+    // Must start with a UUID, followed by /, then timestamp_, then filename
+    const filePathRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\/\d+_[^/]+$/i;
+    if (!filePathRegex.test(filePath)) {
+      console.error("Invalid filePath format:", filePath);
+      return new Response(
+        JSON.stringify({ error: "Invalid file path format" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Ensure the filePath userId matches the provided userId
+    const filePathUserId = filePath.split('/')[0];
+    if (filePathUserId !== userId) {
+      console.error("FilePath userId mismatch");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Cannot process receipts for other users" }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
     // Try to authenticate the user from the Authorization header
@@ -198,7 +258,7 @@ Use intelligent matching - check both merchant name AND items purchased. If unsu
       receiptData.date = `${year}-${month}-${day}`;
     }
 
-    // Insert into database - store the file path
+    // Insert into database - store the file path reference
     const imageUrl = `${supabaseUrl}/storage/v1/object/public/receipts/${filePath}`;
     
     const { data: insertedReceipt, error: insertError } = await supabase

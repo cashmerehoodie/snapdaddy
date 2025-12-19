@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// UUID validation regex
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,6 +17,30 @@ serve(async (req) => {
 
   try {
     let { accessToken, userId, folderName = 'SnapDaddy Receipts' } = await req.json();
+
+    // Validate required parameters
+    if (!accessToken || !userId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters: accessToken, userId" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate userId format
+    if (!uuidRegex.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid user ID format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate folderName
+    if (folderName.length > 100 || /[<>:"|?*]/.test(folderName)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid folder name" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log("Setting up Google storage for user:", userId);
 
@@ -51,7 +78,7 @@ serve(async (req) => {
     // 1. Create Drive folder
     console.log("Creating Drive folder:", folderName);
     const folderSearchResponse = await fetchWithTokenRefresh(
-      `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name)`,
+      `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(folderName)}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name)`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -136,7 +163,7 @@ serve(async (req) => {
 
     // 3. Add welcome headers to the Getting Started sheet
     await fetchWithTokenRefresh(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Getting Started!A1:F1:append?valueInputOption=RAW`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Getting%20Started!A1:F1:append?valueInputOption=RAW`,
       {
         method: 'POST',
         headers: {

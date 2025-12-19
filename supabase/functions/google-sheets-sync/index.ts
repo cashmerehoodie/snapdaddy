@@ -6,25 +6,72 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// UUID validation regex
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { accessToken, receiptData, sheetsId, userId } = await req.json();
-    let currentAccessToken = accessToken;
+    const { accessToken, receiptData, sheetsId, userId, _internalCall } = await req.json();
     
-    if (!sheetsId) {
-      throw new Error('Google Sheets ID not provided');
+    // Validate required parameters
+    if (!accessToken || !receiptData || !sheetsId) {
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters: accessToken, receiptData, sheetsId" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Validate userId if provided
+    if (userId && !uuidRegex.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid user ID format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate sheetsId format (should be alphanumeric with dashes/underscores)
+    if (!/^[a-zA-Z0-9_-]+$/.test(sheetsId) || sheetsId.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Invalid sheets ID format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate receiptData structure
+    if (typeof receiptData !== 'object' || receiptData === null) {
+      return new Response(
+        JSON.stringify({ error: "Invalid receipt data format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    let currentAccessToken = accessToken;
 
     console.log("Syncing to Google Sheets:", sheetsId);
 
     const { merchant_name, amount, receipt_date, category, driveLink } = receiptData;
     
+    // Validate receipt_date format
+    if (!receipt_date || !/^\d{4}-\d{2}-\d{2}$/.test(receipt_date)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid receipt date format. Expected YYYY-MM-DD" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Parse date and get month/year
     const date = new Date(receipt_date);
+    if (isNaN(date.getTime())) {
+      return new Response(
+        JSON.stringify({ error: "Invalid receipt date" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const monthName = date.toLocaleString('en-US', { month: 'long' });
     const year = date.getFullYear();
     const sheetName = `${monthName} ${year}`; // e.g., "November 2025"
@@ -128,7 +175,7 @@ serve(async (req) => {
       // Add headers with better formatting
       console.log("Adding headers to new sheet");
       await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A1:F1:append?valueInputOption=RAW`,
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(sheetName)}!A1:F1:append?valueInputOption=RAW`,
         {
           method: 'POST',
           headers: {
@@ -175,10 +222,14 @@ serve(async (req) => {
     // Format date as DD/MM/YYYY
     const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 
+    // Sanitize merchant name to prevent formula injection
+    const sanitizedMerchant = String(merchant_name || 'Unknown').replace(/^[=+\-@]/, "'$&");
+    const sanitizedCategory = String(category || 'Uncategorized').replace(/^[=+\-@]/, "'$&");
+
     // Append the receipt data
     console.log("Appending receipt data");
     const appendResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${sheetName}!A:F:append?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(sheetName)}!A:F:append?valueInputOption=USER_ENTERED`,
       {
         method: 'POST',
         headers: {
@@ -188,9 +239,9 @@ serve(async (req) => {
         body: JSON.stringify({
           values: [[
             formattedDate,
-            merchant_name || 'Unknown',
+            sanitizedMerchant,
             amount,
-            category || 'Uncategorized',
+            sanitizedCategory,
             driveLink ? `=HYPERLINK("${driveLink}", "View Receipt")` : '',
             monthName
           ]],
