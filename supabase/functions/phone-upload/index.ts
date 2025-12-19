@@ -21,7 +21,25 @@ serve(async (req) => {
     const sessionId = url.searchParams.get("sessionId");
 
     if (!sessionId) {
-      throw new Error("Missing session ID");
+      return new Response(
+        JSON.stringify({ error: "Missing session ID" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    // Input validation: sessionId should be alphanumeric with underscores/hyphens, max 100 chars
+    if (sessionId.length > 100 || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+      console.error("Invalid session ID format:", sessionId.substring(0, 20));
+      return new Response(
+        JSON.stringify({ error: "Invalid session ID format" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -59,18 +77,64 @@ serve(async (req) => {
       );
     }
 
+    // Check if session was already used (prevent multiple uploads per session)
+    if (session.status === "uploaded") {
+      console.log("Session already used:", sessionId);
+      return new Response(
+        JSON.stringify({ error: "Session has already been used" }),
+        { 
+          status: 409, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
     // Parse the multipart form data
     const formData = await req.formData();
     const file = formData.get("file") as File;
 
     if (!file) {
-      throw new Error("No file provided");
+      return new Response(
+        JSON.stringify({ error: "No file provided" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
     }
 
-    console.log(`Uploading file: ${file.name}, size: ${file.size}`);
+    // Validate file type (only images allowed)
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+    if (!allowedTypes.includes(file.type)) {
+      console.error("Invalid file type:", file.type);
+      return new Response(
+        JSON.stringify({ error: "Invalid file type. Only images are allowed." }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
 
-    // Upload to Supabase Storage
-    const fileName = `${session.user_id}/${Date.now()}_${file.name}`;
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      console.error("File too large:", file.size);
+      return new Response(
+        JSON.stringify({ error: "File too large. Maximum size is 10MB." }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
+
+    console.log(`Uploading file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+
+    // Sanitize filename to prevent path traversal
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const fileName = `${session.user_id}/${Date.now()}_${sanitizedFileName}`;
+    
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("receipts")
       .upload(fileName, file, {
@@ -83,18 +147,27 @@ serve(async (req) => {
       throw uploadError;
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Generate signed URL for private bucket (1 hour expiry)
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("receipts")
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 3600);
 
-    console.log("File uploaded successfully:", urlData.publicUrl);
+    if (signedUrlError) {
+      console.error("Error creating signed URL:", signedUrlError);
+      throw signedUrlError;
+    }
 
+    const fileUrl = signedUrlData.signedUrl;
+    console.log("File uploaded successfully");
+
+    // Store the file path (not URL) in database for future signed URL generation
+    const storedUrl = `${supabaseUrl}/storage/v1/object/public/receipts/${fileName}`;
+    
     // Update session with file URL and status
     const { error: updateError } = await supabase
       .from("upload_sessions")
       .update({
-        file_url: urlData.publicUrl,
+        file_url: storedUrl,
         status: "uploaded",
       })
       .eq("session_id", sessionId);
@@ -134,19 +207,30 @@ serve(async (req) => {
 
         // Upload to Google Drive and sync to Sheets if configured
         if (accessToken && processData?.data) {
-          const fileExt = file.name.split(".").pop();
+          const fileExt = sanitizedFileName.split(".").pop();
           const driveFileName = `receipt_${processData.data.date}_${processData.data.merchant_name || "unknown"}.${fileExt}`;
           const folderName = profileData?.google_drive_folder || "SnapDaddy Receipts";
+
+          // Generate a fresh signed URL for Google Drive upload
+          const { data: driveSignedUrl } = await supabase.storage
+            .from("receipts")
+            .createSignedUrl(fileName, 300); // 5 min expiry
+
+          if (!driveSignedUrl) {
+            console.error("Failed to generate signed URL for Drive upload");
+            return;
+          }
 
           // Upload to Google Drive
           console.log("Uploading to Google Drive...");
           const { data: driveData, error: driveError } = await supabase.functions.invoke("google-drive-upload", {
             body: {
-              imageUrl: urlData.publicUrl,
+              imageUrl: driveSignedUrl.signedUrl,
               fileName: driveFileName,
               accessToken,
               folderName,
               userId: session.user_id,
+              _internalCall: true, // Mark as internal call
             },
           });
 
@@ -184,6 +268,7 @@ serve(async (req) => {
                 sheetsId: profileData.google_sheets_id,
                 receiptData,
                 userId: session.user_id,
+                _internalCall: true, // Mark as internal call
               },
             });
 
@@ -212,7 +297,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         message: "Receipt uploaded and processed successfully",
-        fileUrl: urlData.publicUrl,
+        fileUrl: fileUrl,
       }),
       {
         headers: {

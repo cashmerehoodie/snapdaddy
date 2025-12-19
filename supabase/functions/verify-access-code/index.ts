@@ -39,7 +39,33 @@ serve(async (req) => {
     if (!code) {
       throw new Error("No access code provided");
     }
-    logStep("Verifying code", { code });
+
+    // Input validation: code should be alphanumeric, max 50 chars
+    if (typeof code !== 'string' || code.length > 50) {
+      logStep("Invalid code format - too long or wrong type");
+      return new Response(JSON.stringify({ 
+        valid: false,
+        message: "Invalid access code format" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Validate code contains only allowed characters (alphanumeric, dash, underscore)
+    if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
+      logStep("Invalid code format - invalid characters");
+      return new Response(JSON.stringify({ 
+        valid: false,
+        message: "Invalid access code format" 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    const sanitizedCode = code.trim().toUpperCase();
+    logStep("Verifying code");
 
     // First check if user already has free access with this code
     const { data: profile } = await supabaseClient
@@ -48,7 +74,7 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
-    if (profile?.has_free_access && profile?.free_access_code === code.trim().toUpperCase()) {
+    if (profile?.has_free_access && profile?.free_access_code === sanitizedCode) {
       logStep("User already has access with this code");
       return new Response(JSON.stringify({ 
         valid: true,
@@ -63,7 +89,7 @@ serve(async (req) => {
     const { data: vipCode, error: codeError } = await supabaseClient
       .from("vip_codes")
       .select("*")
-      .eq("code", code.trim().toUpperCase())
+      .eq("code", sanitizedCode)
       .eq("is_active", true)
       .is("used_by", null)
       .single();
@@ -95,7 +121,7 @@ serve(async (req) => {
       .from("profiles")
       .update({
         has_free_access: true,
-        free_access_code: code.trim().toUpperCase(),
+        free_access_code: sanitizedCode,
         subscription_status: "active",
       })
       .eq("user_id", user.id);

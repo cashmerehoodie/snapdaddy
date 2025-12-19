@@ -6,16 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// UUID validation regex
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageUrl, fileName, accessToken, folderName = 'SnapDaddy Receipts', userId } = await req.json();
+    const { imageUrl, fileName, accessToken, folderName = 'SnapDaddy Receipts', userId, _internalCall } = await req.json();
+    
+    // Validate required parameters
+    if (!imageUrl || !fileName || !accessToken) {
+      return new Response(
+        JSON.stringify({ error: "Missing required parameters: imageUrl, fileName, accessToken" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate userId if provided
+    if (userId && !uuidRegex.test(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid user ID format" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate fileName doesn't contain path traversal
+    if (fileName.includes('../') || fileName.includes('..\\') || fileName.includes('/')) {
+      return new Response(
+        JSON.stringify({ error: "Invalid file name" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate folderName
+    if (folderName.length > 100 || /[<>:"|?*]/.test(folderName)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid folder name" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate imageUrl is a valid URL
+    try {
+      const parsedUrl = new URL(imageUrl);
+      // Only allow https URLs from trusted domains
+      if (parsedUrl.protocol !== 'https:') {
+        throw new Error("Only HTTPS URLs allowed");
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid image URL" }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     let currentAccessToken = accessToken;
 
-    console.log("Fetching image from:", imageUrl);
+    console.log("Fetching image from:", imageUrl.substring(0, 50) + "...");
 
     // Fetch the image
     const imageResponse = await fetch(imageUrl);
@@ -30,7 +80,7 @@ serve(async (req) => {
     
     // Search for folder in My Drive root specifically (not in shared drives or subfolders)
     let folderSearchResponse = await fetch(
-      `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
+      `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(folderName)}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
       {
         headers: {
           'Authorization': `Bearer ${currentAccessToken}`,
@@ -46,7 +96,7 @@ serve(async (req) => {
         currentAccessToken = refreshResult.accessToken;
         // Retry the request with new token
         folderSearchResponse = await fetch(
-          `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
+          `https://www.googleapis.com/drive/v3/files?q=name='${encodeURIComponent(folderName)}' and mimeType='application/vnd.google-apps.folder' and 'root' in parents and trashed=false&fields=files(id,name,webViewLink)`,
           {
             headers: {
               'Authorization': `Bearer ${currentAccessToken}`,
