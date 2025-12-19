@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { SEO } from "@/components/SEO";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-primary-light/20">
+      <SEO />
       <header className="container mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center shadow-md">

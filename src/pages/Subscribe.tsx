@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Check, Loader2, Crown, Sparkles, CheckCircle2 } from "lucide-react";
 import Footer from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 const Subscribe = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +79,10 @@ const Subscribe = () => {
   if (subLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/10">
+        <SEO 
+          title="Subscribe | SnapDaddy – Start Your Free Trial"
+          description="Subscribe to SnapDaddy Premium with a 14-day free trial. Get unlimited receipt scanning, expense tracking, and cloud sync features."
+        />
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="flex items-center gap-3">
             <Loader2 className="w-8 h-8 text-primary animate-spin" />
@@ -93,6 +98,10 @@ const Subscribe = () => {
   if (!subLoading && subscribed) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/10">
+        <SEO 
+          title="Subscribe | SnapDaddy – Start Your Free Trial"
+          description="Subscribe to SnapDaddy Premium with a 14-day free trial. Get unlimited receipt scanning, expense tracking, and cloud sync features."
+        />
         <div className="flex-1 flex items-center justify-center p-4">
           <Card className="w-full max-w-md border-border/50 shadow-lg">
             <CardHeader className="text-center">
@@ -121,6 +130,10 @@ const Subscribe = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-accent/10">
+      <SEO 
+        title="Subscribe | SnapDaddy – Start Your Free Trial"
+        description="Subscribe to SnapDaddy Premium with a 14-day free trial. Get unlimited receipt scanning, expense tracking, and cloud sync features."
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl border-border/50 shadow-lg">
           {checkoutSuccess && (

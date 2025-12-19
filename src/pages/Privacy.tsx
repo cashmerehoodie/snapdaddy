@@ -3,12 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { EmailLink } from "@/components/EmailLink";
 import Footer from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 const Privacy = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO 
+        title="Privacy Policy | SnapDaddy"
+        description="SnapDaddy Privacy Policy - Learn how we collect, use, and protect your personal information and receipt data."
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button
           variant="ghost"

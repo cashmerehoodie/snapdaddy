@@ -1,8 +1,18 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /logo-generator
+Disallow: /upload/
+Disallow: /access-code
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /logo-generator
+Disallow: /upload/
+Disallow: /access-code
 
 User-agent: Twitterbot
 Allow: /
@@ -12,5 +22,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /logo-generator
+Disallow: /upload/
+Disallow: /access-code
 
 Sitemap: https://snapdaddy.app/sitemap.xml
