@@ -3,12 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { EmailLink } from "@/components/EmailLink";
 import Footer from "@/components/Footer";
+import { SEO } from "@/components/SEO";
 
 const Terms = () => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <SEO 
+        title="Terms of Service | SnapDaddy"
+        description="SnapDaddy Terms of Service - Read our terms and conditions for using the AI receipt scanner and expense tracker."
+      />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Button
           variant="ghost"

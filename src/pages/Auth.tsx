@@ -11,6 +11,7 @@ import { Receipt, Eye, EyeOff } from "lucide-react";
 import Footer from "@/components/Footer";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SEO } from "@/components/SEO";
 
 const RECAPTCHA_SITE_KEY = "6Le0jCEsAAAAAMt_aYZ2f5vghryKC6phWO87G914";
 
@@ -166,6 +167,10 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-secondary to-primary-light/20">
+      <SEO 
+        title="Sign In | SnapDaddy – AI Receipt Scanner"
+        description="Sign in or create an account to start tracking your receipts with SnapDaddy's AI-powered expense tracker."
+      />
       <div className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md border-border/50 shadow-lg animate-scale-in">
           <CardHeader className="space-y-3 text-center">
