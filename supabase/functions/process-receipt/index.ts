@@ -9,6 +9,15 @@ const corsHeaders = {
 // UUID validation regex
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+// Sanitize string to prevent formula injection in spreadsheets
+// Prefixes dangerous characters with a single quote to prevent execution
+const sanitizeForSpreadsheet = (value: string | null | undefined): string => {
+  if (!value) return '';
+  const str = String(value);
+  // If string starts with =, +, -, @ it could be interpreted as a formula
+  return str.replace(/^[=+\-@]/, "'$&");
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -261,15 +270,19 @@ Use intelligent matching - check both merchant name AND items purchased. If unsu
     // Insert into database - store the file path reference
     const imageUrl = `${supabaseUrl}/storage/v1/object/public/receipts/${filePath}`;
     
+    // Sanitize merchant_name and category to prevent formula injection when synced to spreadsheets
+    const sanitizedMerchantName = sanitizeForSpreadsheet(receiptData.merchant_name) || 'Unknown';
+    const sanitizedCategory = sanitizeForSpreadsheet(receiptData.category) || 'Other';
+    
     const { data: insertedReceipt, error: insertError } = await supabase
       .from("receipts")
       .insert({
         user_id: userId,
         image_url: imageUrl,
         amount: receiptData.amount,
-        merchant_name: receiptData.merchant_name,
+        merchant_name: sanitizedMerchantName,
         receipt_date: receiptData.date,
-        category: receiptData.category,
+        category: sanitizedCategory,
       })
       .select()
       .single();

@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sanitize string to prevent formula injection in spreadsheets
+// Prefixes dangerous characters with a single quote to prevent execution
+const sanitizeForSpreadsheet = (value: string | null | undefined): string => {
+  if (!value) return '';
+  const str = String(value);
+  // If string starts with =, +, -, @ it could be interpreted as a formula
+  return str.replace(/^[=+\-@]/, "'$&");
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -106,9 +115,10 @@ serve(async (req) => {
 
           try {
             const date = row[0] || null;
-            const merchantName = row[1] || "Unknown Merchant";
+            // Sanitize merchant name and category to prevent formula injection if synced back
+            const merchantName = sanitizeForSpreadsheet(row[1]) || "Unknown Merchant";
             const amountStr = row[2] || "0";
-            const category = row[3] || "Other";
+            const category = sanitizeForSpreadsheet(row[3]) || "Other";
             const driveLink = row[4] || null;
 
             // Parse amount (remove currency symbols and commas)
