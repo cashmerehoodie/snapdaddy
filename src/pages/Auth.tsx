@@ -141,6 +141,7 @@ const Auth = () => {
   };
 
   const openGoogleConsent = () => {
+    console.log("Opening Google consent dialog");
     setShowConsentDialog(true);
   };
 
