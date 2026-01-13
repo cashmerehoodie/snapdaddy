@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Shield, Mail, User, Lock, ExternalLink } from "lucide-react";
+import { Shield, Mail, User, Lock, FileSpreadsheet } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface GoogleConsentDialogProps {
@@ -56,6 +56,14 @@ const GoogleConsentDialog = ({
                 <div>
                   <p className="text-sm font-medium">Basic Profile Info</p>
                   <p className="text-xs text-muted-foreground">Your name and profile picture</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border/50">
+                <FileSpreadsheet className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium">Google Sheets & Drive</p>
+                  <p className="text-xs text-muted-foreground">To store your receipts securely in your own Google account</p>
                 </div>
               </div>
             </div>
