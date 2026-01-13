@@ -12,6 +12,7 @@ import Footer from "@/components/Footer";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SEO } from "@/components/SEO";
+import GoogleConsentDialog from "@/components/GoogleConsentDialog";
 
 const RECAPTCHA_SITE_KEY = "6Le0jCEsAAAAAMt_aYZ2f5vghryKC6phWO87G914";
 
@@ -23,6 +24,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [showConsentDialog, setShowConsentDialog] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => {
@@ -138,7 +140,12 @@ const Auth = () => {
     }
   };
 
+  const openGoogleConsent = () => {
+    setShowConsentDialog(true);
+  };
+
   const handleGoogleSignIn = async () => {
+    setShowConsentDialog(false);
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -247,7 +254,7 @@ const Auth = () => {
                       type="button"
                       variant="outline"
                       className="w-full border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all shadow-sm"
-                      onClick={handleGoogleSignIn}
+                      onClick={openGoogleConsent}
                       disabled={loading}
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -346,7 +353,7 @@ const Auth = () => {
                     type="button"
                     variant="outline"
                     className="w-full border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all shadow-sm"
-                    onClick={handleGoogleSignIn}
+                    onClick={openGoogleConsent}
                     disabled={loading}
                   >
                     <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -376,6 +383,13 @@ const Auth = () => {
         </Card>
       </div>
       <Footer />
+      
+      <GoogleConsentDialog
+        open={showConsentDialog}
+        onOpenChange={setShowConsentDialog}
+        onConfirm={handleGoogleSignIn}
+        loading={loading}
+      />
     </div>
   );
 };
