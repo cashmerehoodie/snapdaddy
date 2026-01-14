@@ -34,22 +34,15 @@ const Auth = () => {
     } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, !!session);
       
-      if (session) {
-        console.log("Session detected, navigating to subscribe");
+      // Only redirect on actual sign-in events, not just when a session exists
+      // This allows the consent dialog to show even if there's an old session
+      if (event === 'SIGNED_IN' && session) {
+        console.log("Sign in event detected, navigating to subscribe");
         // Use longer delay on mobile for better compatibility
         setTimeout(() => {
           console.log("Executing navigation to subscribe");
           navigate("/subscribe", { replace: true });
         }, 200);
-      }
-    });
-
-    // THEN check for existing session (e.g. just returned from Google OAuth)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Existing session check:", !!session);
-      if (session) {
-        console.log("Existing session found, navigating to subscribe");
-        navigate("/subscribe", { replace: true });
       }
     });
 
